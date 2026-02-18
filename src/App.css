@@ -1,0 +1,334 @@
+/* Terminal 分步判决 UI（分析报告 + 最终判决） */
+
+.terminal-verdict-block {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 心理/语义分析：终端警告黄，等宽，小字号，诊断日志感 */
+.analysis-log {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #ffd700;
+  background: rgba(40, 36, 0, 0.4);
+  border-left: 3px solid #b8860b;
+  padding: 14px 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 最终判决：大写、加粗，红/绿 */
+.verdict-log {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.verdict-log--survived {
+  color: #0f0;
+  background: rgba(0, 40, 0, 0.5);
+  border-left: 3px solid #0f0;
+  text-shadow: 0 0 12px rgba(0, 255, 0, 0.4);
+}
+
+.verdict-log--deceased {
+  color: #cc2222;
+  background: rgba(40, 0, 0, 0.5);
+  border-left: 3px solid #cc2222;
+  text-shadow: 0 0 12px rgba(255, 50, 50, 0.5);
+  animation: verdict-glitch 0.15s ease-in-out 3;
+}
+
+/* 死亡判决时的轻微屏幕闪烁/glitch */
+@keyframes verdict-glitch {
+  0%, 100% {
+    opacity: 1;
+    filter: none;
+  }
+  25% {
+    opacity: 0.85;
+    filter: brightness(1.4);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(0.95);
+  }
+  75% {
+    opacity: 0.9;
+    filter: brightness(1.2);
+  }
+}
+
+/* 打字机光标 */
+.typewriter-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  color: inherit;
+  animation: cursor-blink 0.8s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ---------- 死亡结局后：诊断报告按钮与科普数据界面 ---------- */
+
+.fade-in {
+  animation: fade-in 1.5s ease-out forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.diagnostic-btn {
+  position: relative;
+  margin-top: 32px;
+  padding: 14px 24px;
+  background: #000;
+  color: #ccc;
+  border: 1px solid #663333;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: text-shadow 0.2s, box-shadow 0.2s;
+}
+
+.diagnostic-btn:hover {
+  color: #ff6666;
+  text-shadow: 0 0 12px rgba(255, 80, 80, 0.8);
+  box-shadow: 0 0 8px rgba(255, 50, 50, 0.3);
+  animation: diagnostic-btn-flicker 0.4s ease-in-out 2;
+}
+
+.diagnostic-btn--survived {
+  border-color: #2a4a2a;
+  color: #a0d0a0;
+}
+
+.diagnostic-btn--survived:hover {
+  color: #0f0;
+  text-shadow: 0 0 12px rgba(0, 255, 0, 0.6);
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.25);
+}
+
+@keyframes diagnostic-btn-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+/* 系统事故诊断报告（科普）界面 — 学术易读排版 */
+.stats-screen {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 640px;
+  padding: 40px 28px;
+  background: #0d0d0d;
+  color: #d8d8d8;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.stats-screen-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.stats-screen-title {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #888;
+  letter-spacing: 0.06em;
+  margin: 0 0 12px 0;
+  border-bottom: 1px solid #333;
+  padding-bottom: 12px;
+}
+
+.stats-screen-subtitle {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #b8d0b8;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.stats-screen-abstract {
+  font-size: 0.98rem;
+  color: #909090;
+  line-height: 1.65;
+  margin: 0 0 24px 0;
+}
+
+/* References：放在结论后、bonus 前 */
+.stats-references {
+  margin: 24px 0;
+  padding: 20px 0 0 0;
+  border-top: 1px solid #333;
+}
+
+.stats-references-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #888;
+  margin: 0 0 12px 0;
+}
+
+.stats-references-list {
+  margin: 0;
+  padding-left: 1.5em;
+  font-size: 0.9rem;
+  color: #a0a0a0;
+  line-height: 1.65;
+}
+
+.stats-references-list li {
+  margin-bottom: 8px;
+}
+
+/* 仅从死亡结局进入时显示，放在 references 后面 */
+.stats-bonus {
+  margin-top: 8px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(60, 0, 0, 0.2);
+  border-left: 3px solid #cc4444;
+}
+
+.stats-bonus-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e8a040;
+  margin: 0 0 12px 0;
+  letter-spacing: 0.02em;
+}
+
+.stats-bonus-quote {
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: #d0b8b8;
+  margin: 0;
+  font-style: italic;
+  border: none;
+  padding: 0;
+}
+
+.stat-block {
+  text-align: left;
+  padding: 20px 0 0 0;
+  border-left: 3px solid #3a6a3a;
+  padding-left: 20px;
+  margin: 0 0 28px 0;
+}
+
+.stat-block h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #90c090;
+  margin: 0 0 12px 0;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+
+.stat-block p,
+.stat-block .stat-intro {
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: #c4c4c4;
+  margin: 0 0 12px 0;
+}
+
+.stat-item {
+  margin-bottom: 16px;
+}
+
+.stat-label {
+  display: block;
+  color: #a8c8a8;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.stat-subsection {
+  margin-bottom: 20px;
+}
+
+.stat-subheading {
+  display: block;
+  color: #a8c8a8;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.stat-points {
+  margin: 10px 0 0 0;
+  padding-left: 1.4em;
+  color: #b8b8b8;
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.stat-points li {
+  margin-bottom: 6px;
+}
+
+.stat-quote {
+  font-style: italic;
+  color: #e0c860;
+  margin: 14px 0 10px 0;
+  border-left: 2px solid #a08020;
+  padding-left: 14px;
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+.stat-quote-explanation {
+  margin-top: 0;
+  font-size: 0.98rem;
+}
+
+.system-conclusion {
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: #e8c040;
+  margin: 28px 0 0 0;
+  padding: 18px 0;
+  border-top: 1px solid #444;
+  line-height: 1.6;
+}
+
+.reboot-btn {
+  margin-top: 24px;
+  padding: 14px 24px;
+  background: transparent;
+  color: #0f0;
+  border: 1px solid #0f0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.reboot-btn:hover {
+  background: rgba(0, 255, 0, 0.15);
+  box-shadow: 0 0 12px rgba(0, 255, 0, 0.3);
+}
