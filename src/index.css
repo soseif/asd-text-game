@@ -1,8 +1,24 @@
+@import "tailwindcss";
+
+/* ========== 全局 Reset + 响应式保护 ========== */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+  background-color: #000000;
+}
+
 /* --- 开场简介 --- */
 .intro-screen {
   min-height: 100vh;
   width: 100%;
-  max-width: 600px;
+  max-width: 800px;
+  margin: 0 auto;
   padding: 40px 24px;
   display: flex;
   align-items: center;
@@ -18,9 +34,8 @@
 }
 .intro-project {
   font-size: 1.4rem;
-  letter-spacing: 0.15em;
-  color: #0f0;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #cccccc;
   margin: 0 0 8px 0;
   border-bottom: 1px solid #333;
   padding-bottom: 12px;
@@ -38,13 +53,13 @@
 }
 .intro-clock {
   font-size: 1.05rem;
-  color: #a8ffa8;
+  color: #a0a0a0;
   margin: 8px 0 0 0;
 }
 .intro-question {
   font-size: 1.05rem;
   font-style: italic;
-  color: #e0e0e0;
+  color: #c0c0c0;
   margin: 0;
 }
 .start-action {
@@ -62,91 +77,257 @@
 
 /* 游戏主题：深色终端风 */
 body {
-  margin: 0;
   display: flex;
   justify-content: center;
   min-height: 100vh;
-  background-color: #050505;
   color: #e0e0e0;
   font-family: 'Courier New', Courier, monospace;
 }
 
-/* --- 游戏布局 --- */
+/* --- 游戏布局：三段式 Flexbox，顶底固定、中间独立滚动 --- */
 .game-wrapper {
-  max-width: 600px;
-  width: 100%;
-  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  height: 100vh;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  overflow: hidden;
+  background-color: #000000;
+  padding: 0 14px 0 14px;
+  box-sizing: border-box;
 }
 
-/* 顶部状态栏 */
+/* 顶部状态栏：固定不挤压 */
 .stats-header {
-  display: flex;
-  justify-content: space-between;
-  background: #111;
-  padding: 15px;
-  border: 1px solid #333;
-  border-radius: 4px;
+  flex-shrink: 0;
+  background: #000000;
+  padding: 8px 12px;
+  border-bottom: 1px solid #333;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
-.stat-box { display: flex; flex-direction: column; align-items: center; }
-.stat-box-gaslight { cursor: help; }
-.stat-value { font-size: 1.2rem; font-weight: bold; margin-top: 5px; }
-.danger-pulse { color: #ff3333; animation: pulse 1s infinite alternate; }
+
+.status-bar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  min-width: min-content;
+  font-size: 0.9rem;
+  color: #e0e0e0;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: #e0e0e0;
+}
+
+.status-item--end {
+  margin-left: auto;
+  color: #e0e0e0;
+}
+
+.status-item.stat-danger {
+  color: #ff4444;
+  font-weight: 600;
+  animation: pulse 1s infinite alternate;
+}
+
+.stats-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
 
 @keyframes pulse {
-  0% { text-shadow: 0 0 5px #ff3333; opacity: 1; }
-  100% { text-shadow: 0 0 20px #ff3333; opacity: 0.6; }
+  0% { opacity: 1; }
+  100% { opacity: 0.75; }
 }
 
-/* 剧情展示区 */
+/* 剧情展示区：中间可独立滚动 */
 .story-area,
-.story-container {
+.story-container,
+.narrative-area {
+  flex: 1;
+  flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: #0f0f0f;
-  padding: 20px;
-  border-left: 4px solid #444;
+  padding: 12px 14px 12px 14px;
+  padding-right: 15px;
+  border-left: 3px solid #333;
+  margin: 8px 0 10px 0;
+  box-sizing: border-box;
+}
+
+/* 赛博/终端风自定义滚动条 */
+.story-area::-webkit-scrollbar,
+.narrative-area::-webkit-scrollbar {
+  width: 6px;
+}
+.story-area::-webkit-scrollbar-track,
+.narrative-area::-webkit-scrollbar-track {
+  background: #050505;
+  border-left: 1px solid #222;
+}
+.story-area::-webkit-scrollbar-thumb,
+.narrative-area::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+.story-area::-webkit-scrollbar-thumb:hover,
+.narrative-area::-webkit-scrollbar-thumb:hover {
+  background: #666;
 }
 .story-meta,
-.time-label { color: #888; font-size: 0.9rem; }
-.story-title { border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 5px; }
-.story-text { line-height: 1.6; font-size: 1.1rem; }
-
-.consequence-box {
-  margin-bottom: 20px;
-  padding: 10px;
-  background: rgba(168, 255, 168, 0.05);
-  border-left: 3px solid #a8ffa8;
-  color: #a8ffa8;
-  font-style: italic;
+.time-label { color: #888; font-size: 0.78rem; margin-bottom: 2px; }
+.story-title {
+  border-bottom: 1px solid #333;
+  padding-bottom: 4px;
+  margin: 2px 0 6px 0;
+  font-size: 0.98rem;
+  line-height: 1.3;
+}
+.story-text {
+  line-height: 1.42;
+  font-size: 0.9rem;
+  color: #e0e0e0;
+  margin: 0;
 }
 
-/* 选项按钮 */
-.choices-container { display: flex; flex-direction: column; gap: 12px; }
+.consequence-box {
+  margin-bottom: 10px;
+  padding: 6px 8px;
+  background: rgba(40, 40, 40, 0.4);
+  border-left: 3px solid #666;
+  color: #a0a0a0;
+  font-style: italic;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+/* ---------- 赛博风游戏主界面：状态栏 / 剧情区 / 选择卡片 ---------- */
+/* 深黑背景 + 暗红氛围（径向渐变） */
+.game-wrapper {
+  position: relative;
+}
+.game-wrapper::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 100% 80% at 50% 100%,
+    rgba(127, 29, 29, 0.12) 0%,
+    transparent 55%
+  );
+  z-index: 0;
+}
+.game-wrapper > * {
+  position: relative;
+  z-index: 1;
+}
+.cyber-status-bar {
+  -webkit-overflow-scrolling: touch;
+}
+.cyber-story-area {
+  background: rgba(0, 0, 0, 0.4);
+}
+.cyber-story-area::-webkit-scrollbar {
+  width: 6px;
+}
+.cyber-story-area::-webkit-scrollbar-track {
+  background: #050505;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+.cyber-story-area::-webkit-scrollbar-thumb {
+  background: rgba(127, 29, 29, 0.4);
+  border-radius: 3px;
+}
+.cyber-story-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(127, 29, 29, 0.6);
+}
+.cyber-warning-prefix strong {
+  font-weight: 700;
+  color: #d1d5db;
+}
+/* 玻璃拟态选择卡片：半透明边框与背景，选中态暗红 */
+.cyber-choice-card {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.cyber-choice-card--active {
+  box-shadow: 0 0 20px rgba(127, 29, 29, 0.25);
+}
+.cyber-choices {
+  background: #000000;
+}
+
+/* 保留旧类名供其他屏使用 */
+.choices-container {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 20px 0;
+  background-color: #000000;
+  border-top: 1px solid #333;
+}
 .choice-btn {
-  background: #151515;
-  color: #e0e0e0;
-  border: 1px solid #444;
-  padding: 15px;
+  flex: 1;
+  min-width: 140px;
+  background: #c45c26;
+  color: #fff;
+  border: 1px solid #d46a2c;
+  padding: 10px 12px;
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s;
   font-family: inherit;
   border-radius: 4px;
 }
-.choice-btn:hover:not(:disabled) { background: #252525; border-color: #777; }
-.choice-content { display: flex; flex-direction: column; gap: 8px; }
-.action-text { display: block; }
-.impact-hint { display: block; color: #888; font-size: 0.85rem; }
+.choice-btn:hover:not(:disabled) {
+  background: #d46a2c;
+  border-color: #e07838;
+}
+.choice-content { display: flex; flex-direction: column; gap: 4px; }
+.action-with-hint { display: flex; flex-direction: column; gap: 2px; }
+.action-text { display: block; font-size: 0.88rem; line-height: 1.35; color: #fff; }
+.impact-hint {
+  display: block;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.2s, max-height 0.2s;
+}
+.action-with-hint:hover .impact-hint {
+  opacity: 1;
+  max-height: 6em;
+}
+.disabled-btn { background: #5a3a1a; color: #aaa; border-color: #4a3520; cursor: not-allowed; }
+.disabled-btn .action-text {
+  text-decoration: line-through;
+  color: #cc4444;
+}
+.disabled-reason { color: #ffcccc; font-size: 0.78rem; margin-top: 4px; display: block; }
 
-.disabled-btn { background: #0a0a0a; color: #555; border-color: #222; cursor: not-allowed; }
-.disabled-reason { color: #ff3333; font-size: 0.85rem; margin-top: 8px; display: block; }
-
-/* 终端机大结局 (Terminal Override - Beat 7) */
+/* 终端机大结局 (Terminal Override - Beat 7) — 赛博终端打字感 */
 .terminal-override {
-  min-height: 100vh;
   width: 100%;
-  max-width: 600px;
+  max-width: 800px;
+  margin: 0 auto;
   padding: 40px 24px;
   background: #000;
   color: #e0e0e0;
@@ -155,15 +336,151 @@ body {
   flex-direction: column;
   gap: 24px;
 }
+
+/* 所有 [xxx] 括号内容：荧光绿 + 轻微发光，终端系统标签感 */
+.terminal-bracket {
+  color: #39ff14;
+  text-shadow: 0 0 6px #39ff14, 0 0 12px rgba(57, 255, 20, 0.5);
+  font-weight: 500;
+}
+
+/* 手动直连界面：一屏内无窗口滚动，赛博终端聊天感 */
+.manual-input-screen {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 2rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  gap: 0;
+  background: #000;
+  box-shadow: inset 0 0 80px rgba(57, 255, 20, 0.03);
+}
+.manual-input-screen .terminal-override-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+.manual-input-screen .terminal-override-consequence {
+  padding: 8px 0 8px 10px;
+  border-left: 3px solid #555;
+  color: #a0a0a0;
+  font-style: italic;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+.manual-input-screen .terminal-override-prompt {
+  text-align: center;
+  color: #a0c0a0;
+  font-size: 1rem;
+  margin: 0 0 10px 0;
+  flex-shrink: 0;
+}
+.manual-input-screen .terminal-override-input {
+  width: 100%;
+  max-height: 25vh;
+  min-height: 72px;
+  padding: 10px 12px;
+  background: #0a0a0a;
+  color: #c0e0c0;
+  border: 1px solid #2a4a2a;
+  font-family: monospace;
+  font-size: 0.9rem;
+  outline: none;
+  resize: none;
+  flex-shrink: 1;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.manual-input-screen .terminal-override-input:focus {
+  border-color: #39ff14;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.2);
+  color: #e0ffe0;
+}
+.manual-input-screen .terminal-override-btn-wrap {
+  display: flex;
+  justify-content: center; /* 居中 transmit 按钮 */
+  width: 100%;
+  margin-top: 16px;
+  flex-shrink: 0;
+}
+.manual-input-screen .terminal-override-btn {
+  padding: 12px 26px;
+  background: transparent;
+  color: #39ff14; /* 荧光绿文本 */
+  border: 1px solid #39ff14; /* 荧光绿描边 */
+  font-family: monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 8px rgba(57, 255, 20, 0.4),
+    0 0 18px rgba(57, 255, 20, 0.2);
+  transition: color 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.manual-input-screen .terminal-override-btn:hover:not(:disabled) {
+  color: #000;
+  background: #39ff14;
+  border-color: #39ff14;
+  box-shadow:
+    0 0 14px rgba(57, 255, 20, 0.6),
+    0 0 26px rgba(57, 255, 20, 0.4);
+}
+.manual-input-screen .terminal-override-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.manual-input-screen .terminal-override-error-msg {
+  margin-top: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.manual-input-screen .typewriter-cursor {
+  color: #39ff14;
+  text-shadow: 0 0 6px #39ff14;
+}
+
+/* LLM 分析与判决区域：占用剩余空间，内部滚动而非整页滚动 */
+.manual-input-screen .terminal-verdict-block {
+  margin-top: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .terminal-override-errors {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 .terminal-error-line {
-  color: #cc2222;
+  color: #666;
   font-size: 0.95rem;
   letter-spacing: 0.05em;
+}
+.terminal-override-consequence {
+  padding: 12px 0;
+  border-left: 3px solid #555;
+  padding-left: 12px;
+  color: #a0a0a0;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 .terminal-override-prompt {
   text-align: center;
@@ -177,20 +494,20 @@ body {
   min-height: 100px;
   padding: 14px;
   background: #000;
-  color: #0f0;
-  border: 1px solid #2a4a2a;
-  font-family: 'Courier New', Courier, monospace;
+  color: #a0a0a0;
+  border: 1px solid #333;
+  font-family: monospace;
   font-size: 0.95rem;
   outline: none;
   resize: vertical;
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 .terminal-override-input::placeholder {
-  color: #336633;
+  color: #555;
 }
 .terminal-override-input:focus {
-  border-color: #0f0;
-  box-shadow: 0 0 12px rgba(0, 255, 0, 0.35);
+  border-color: #555;
+  box-shadow: 0 0 8px rgba(128, 128, 128, 0.2);
 }
 .terminal-override-input:disabled {
   opacity: 0.7;
@@ -199,17 +516,18 @@ body {
 .terminal-override-btn {
   padding: 14px 20px;
   background: #0a0a0a;
-  color: #0f0;
-  border: 1px solid #2a4a2a;
-  font-family: 'Courier New', Courier, monospace;
+  color: #a0a0a0;
+  border: 1px solid #333;
+  font-family: monospace;
   font-size: 0.9rem;
   letter-spacing: 0.08em;
   cursor: pointer;
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 .terminal-override-btn:hover:not(:disabled) {
-  border-color: #0f0;
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.25);
+  border-color: #666;
+  color: #c0c0c0;
+  box-shadow: 0 0 8px rgba(128, 128, 128, 0.15);
 }
 .terminal-override-btn:disabled {
   opacity: 0.6;
@@ -218,18 +536,18 @@ body {
 .terminal-override-response {
   margin-top: 20px;
   padding: 16px;
-  background: rgba(0, 40, 0, 0.4);
-  border-left: 3px solid #0f0;
-  color: #a8ffa8;
+  background: rgba(30, 30, 30, 0.6);
+  border-left: 3px solid #555;
+  color: #a0a0a0;
   font-size: 1rem;
   line-height: 1.5;
 }
 .terminal-override-error-msg {
   margin-top: 12px;
   padding: 12px;
-  background: rgba(60, 0, 0, 0.5);
-  border-left: 3px solid #cc2222;
-  color: #ff8888;
+  background: rgba(30, 30, 30, 0.6);
+  border-left: 3px solid #666;
+  color: #888;
   font-size: 0.9rem;
 }
 
@@ -253,20 +571,25 @@ body {
   pointer-events: none;
 }
 .terminal-outcome-survived {
-  background: #050505;
-  color: #a8ffa8;
+  background: #000;
+  color: #39ff14; /* 全局文字偏绿色 */
 }
 .terminal-outcome-survived .terminal-outcome-glow {
-  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(0, 80, 0, 0.35) 0%, transparent 60%);
-  animation: outcome-glow-pulse 2s ease-in-out infinite;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 50%,
+    rgba(57, 255, 20, 0.18) 0%,
+    transparent 60%
+  );
 }
 .terminal-outcome-survived .terminal-outcome-title {
-  color: #0f0;
-  text-shadow: 0 0 24px rgba(0, 255, 0, 0.6);
+  color: #39ff14; /* LINK SECURED 变成终端绿色 */
+  text-shadow:
+    0 0 8px rgba(57, 255, 20, 0.7),
+    0 0 18px rgba(57, 255, 20, 0.5);
 }
 .terminal-outcome-deceased {
   background: #000;
-  color: #cc2222;
+  color: #cc2222; /* 默认红色文字 */
 }
 .terminal-outcome-deceased .terminal-outcome-alert {
   background: radial-gradient(ellipse 100% 100% at 50% 50%, rgba(80, 0, 0, 0.4) 0%, transparent 70%);
@@ -275,6 +598,9 @@ body {
 .terminal-outcome-deceased .terminal-outcome-title-deceased {
   color: #ff3333;
   text-shadow: 0 0 20px rgba(255, 50, 50, 0.7);
+}
+.terminal-outcome-deceased .terminal-outcome-message {
+  color: #ff6666; /* LINK DISCONNECTED / 文案整体更偏红 */
 }
 .terminal-outcome-title {
   position: relative;
@@ -305,7 +631,7 @@ body {
 }
 
 /* 旧版终端容器保留（若有其他地方引用） */
-.terminal-container { width: 100vw; height: 100vh; background: #000; color: #0f0; }
+.terminal-container { width: 100%; max-width: 100%; height: 100vh; background: #000; color: #0f0; }
 .glitch-text { color: #f00; text-shadow: 2px 0 #0f0, -2px 0 #00f; margin-bottom: 20px; }
 .system-msg { margin: 5px 0; font-size: 1.1rem; }
 .terminal-input {

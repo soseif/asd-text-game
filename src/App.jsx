@@ -4,14 +4,146 @@ import { diagnosticReport } from './data/diagnosticReport.js';
 import { LYNN_SYSTEM_PROMPT } from './llm/lynnPrompt.js';
 import './App.css';
 
+/** 将文本中的 [xxx] 段渲染为荧光绿，用于终端赛博感 */
+function highlightBrackets(text) {
+  if (!text) return null;
+  const parts = text.split(/(\[[^\]]*\])/g);
+  return parts.map((part, i) =>
+    /^\[.*\]$/.test(part) ? (
+      <span key={i} className="terminal-bracket">{part}</span>
+    ) : (
+      part
+    )
+  );
+}
+
+const SPAM_MESSAGES = [
+  { id: 'msg1', sender: 'Sammie (Manager)', text: "quick sync? ping me when you see this.", delay: 800 },
+  { id: 'msg2', sender: 'Sammie (Manager)', text: "Can you take this ad-hoc ticket real quick? Client is waiting.", delay: 1500 },
+  { id: 'msg3', sender: 'Sammie (Manager)', text: "Lynn? Your dot has been yellow for 4 minutes.", delay: 2200 },
+  { id: 'msg4', sender: 'Sammie (Manager)', text: "I noticed yesterday you blocked your calendar from 2 to 3. Where do you need to be?", delay: 3000 },
+  { id: 'msg5', sender: 'Sammie (Manager)', text: "Lynn, asking me to review your daily checklist is not a 'reasonable accommodation.' I expect self-sufficiency. Hand-holding you is unfair to the rest of the team.", delay: 3800 },
+  { id: 'msg6', sender: 'Sammie (Manager)', text: "I am not going to write down everything we just discussed. You need to learn to 'read between the lines', Lynn. This rigidity is exactly why you are on a PIP.", delay: 4700 },
+  { id: 'msg7', sender: 'Sammie (Manager)', text: "David mentioned he 'helped' you write that script yesterday. Are we evaluating your performance or his? You need to be self-sufficient.", delay: 5600 },
+  { id: 'msg8', sender: 'Sammie (Manager)', text: "Also, wearing those giant headphones at your desk sends a very hostile message to the floor.", delay: 6500 },
+  { id: 'uscis', sender: 'USCIS_AUTO_ALERT', text: "WARNING: Upon termination, your H1B status will be revoked. 60 days to deportation.", delay: 7800, isAlert: true },
+  { id: 'fatal', sender: 'SYSTEM_FATAL', text: "Subject vitals flatlining. Neural link collapsing.", delay: 9000, isFatal: true }
+];
+
+function StartScreen({ onStart }) {
+  const [hasEnteredIntro, setHasEnteredIntro] = useState(false);
+  /** 出现顺序：新来的在数组头 */
+  const [visibleOrder, setVisibleOrder] = useState(() => []);
+
+  useEffect(() => {
+    if (!hasEnteredIntro) return;
+    const timers = SPAM_MESSAGES.map((m) =>
+      setTimeout(() => {
+        setVisibleOrder((prev) => [m.id, ...prev]);
+      }, m.delay)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [hasEnteredIntro]);
+
+  const dismiss = (id, e) => {
+    e.stopPropagation();
+    setVisibleOrder((prev) => prev.filter((x) => x !== id));
+  };
+
+  // 第一屏：只有标题 + Enter game
+  if (!hasEnteredIntro) {
+    return (
+      <div className="intro-minimal">
+        <div className="title-hero title-hero--center">
+          <h1 className="glitch-title">24 Hours of Sodom</h1>
+          <h2 className="glitch-subtitle">Too Loud a Solitude</h2>
+        </div>
+        <button className="enter-game-btn" onClick={() => setHasEnteredIntro(true)}>
+          Enter game
+        </button>
+      </div>
+    );
+  }
+
+  // 第二屏：大段文字 + 弹窗 + INITIATE_LINK
+  return (
+    <div className="diagnostic-report relative-container">
+      {/* 赛博感主标题 */}
+      <div className="title-hero">
+        <h1 className="glitch-title">24 Hours of Sodom</h1>
+        <h2 className="glitch-subtitle">Too Loud a Solitude</h2>
+      </div>
+      {/* 底层：静态的剧情梗概 */}
+      <div className="report-header">
+        <span className="critical-warning">&gt;&gt; SYSTEM_ALERT: 24 hours until complete unravelling.</span>
+      </div>
+
+      <div className="report-body">
+        <div className="data-block">
+          <span className="block-label">[ NEURAL_STATUS ]</span>
+          <p>As someone on the Autism Spectrum (ASD), your world is a relentless storm of information. For three weeks, you've survived on just 3 hours of sleep a night, trapped in a "logical loop" trying to decode every subtext in your micromanager Sammie's emails.</p>
+        </div>
+
+        <div className="data-block">
+          <span className="block-label">[ SENSORY_OVERLOAD ]</span>
+          <p>Your sensory filters are shattered: the screech of subway brakes feels like a blade against your eardrums; a colleague's perfume lingers like thick, toxic gas. To Sammie, your "awkwardness" is a lack of professionalism. To you, simply maintaining the "Mask" of a 'normal' human has drained every ounce of your life force.</p>
+        </div>
+
+        <div className="data-block">
+          <span className="block-label">[ SYSTEMIC_THREAT ]</span>
+          <p>Your H1B visa is tethered to a failing Performance Improvement Plan. If the system ejects you, the only structured, safe world you've built over 10 years will vanish.</p>
+        </div>
+      </div>
+
+      <div className="report-footer">
+        <p className="mission-objective">Can you help Lynn find a single breath of air amidst the noise and shadows?</p>
+        <button className="start-btn" onClick={onStart}>
+          &gt; INITIATE_LINK<span className="start-cursor">_</span>
+        </button>
+      </div>
+
+      {/* 表层：通知列表不重叠，区域可上下滚动 */}
+      <div className="notification-center">
+        {visibleOrder.map((id) => {
+          const m = SPAM_MESSAGES.find((msg) => msg.id === id);
+          if (!m) return null;
+          const header = m.isFatal ? '🔴 SYSTEM_FATAL' : m.isAlert ? '⚠️ USCIS_AUTO_ALERT' : '💬 SLACK_MESSAGE';
+          return (
+            <div
+              key={m.id}
+              className={`popup-msg slide-in ${m.isFatal ? 'fatal-popup' : ''} ${m.isAlert ? 'alert-popup' : ''}`}
+            >
+              <div className="popup-top">
+                <span className="popup-header">{header}</span>
+                <button
+                  className="popup-dismiss"
+                  onClick={(e) => dismiss(m.id, e)}
+                  aria-label="Dismiss"
+                >
+                  [×]
+                </button>
+              </div>
+              <div className={`popup-body ${m.isFatal ? 'blinking-text' : ''}`}>
+                {m.sender.includes('Sammie') ? <><strong>{m.sender}:</strong> "{m.text}"</> : m.text}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function GameUI() {
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? "";
   // --- 核心游戏状态 ---
+  const [isGameStarted, setIsGameStarted] = useState(false);
   const [hasSeenIntro, setHasSeenIntro] = useState(false);
   const [stats, setStats] = useState({ energy: 100, sensory: 0, pressure: 0 });
   const [currentBeatIndex, setCurrentBeatIndex] = useState(0);
   const [lastConsequence, setLastConsequence] = useState("");
   const [isSystemFailed, setIsSystemFailed] = useState(false);
+  const [choiceHistory, setChoiceHistory] = useState({}); // { [beatId]: choiceId }
   // Terminal Override (Beat 7 结局)
   const [playerMessage, setPlayerMessage] = useState("");
   const [isTransmitting, setIsTransmitting] = useState(false);
@@ -31,6 +163,7 @@ export default function GameUI() {
   const [waitingMessageIndex, setWaitingMessageIndex] = useState(0);
   const [showReportButton, setShowReportButton] = useState(false);
   const [showStatsScreen, setShowStatsScreen] = useState(false);
+  const [hoveredChoiceId, setHoveredChoiceId] = useState(null); // 底部选项卡片 hover/active 高亮
   const pauseTimeoutRef = useRef(null);
   const typewriterIntervalRef = useRef(null);
   const waitingIntervalRef = useRef(null);
@@ -159,12 +292,24 @@ export default function GameUI() {
     };
   }, [isTransmitting]);
 
+  // --- Start Screen：内心感官诊断 + 外部夺命通知，纯黑白终端 ---
+  if (!isGameStarted) {
+    return (
+      <StartScreen
+        onStart={() => {
+          setIsGameStarted(true);
+          setHasSeenIntro(true);
+        }}
+      />
+    );
+  }
+
   // --- 渲染开场简介 ---
   if (!hasSeenIntro) {
     return (
       <div className="intro-screen">
         <div className="intro-content">
-          <h1 className="intro-project">PROJECT: ECHO-RECOVERY</h1>
+          <h1 className="intro-project">24 Hours of Sodom: Too Loud a Solitude</h1>
           <p className="intro-subject">Subject: Lynn | Status: Deceased (Suicide confirmed)</p>
           <p className="intro-body">
             You are accessing the final 24 hours of a trapped soul. For most, a toxic job is a
@@ -212,6 +357,8 @@ export default function GameUI() {
 
   // 处理选项点击
   const handleChoiceClick = (choice) => {
+    const currentBeatId = storyBeats[currentBeatIndex]?.id || "";
+
     // 1. 更新数值
     setStats(prev => ({
       energy: clamp(prev.energy + (choice.statsImpact.energy || 0)),
@@ -222,15 +369,27 @@ export default function GameUI() {
     // 2. 显示后果
     setLastConsequence(choice.consequenceText || "");
 
-    // 3. 检查是否触发大结局 (System Failure / Beat 7)
-    const isBeat7 = /^7[ABC]$/.test(choice.id) || (storyBeats[currentBeatIndex]?.id || "").includes("beat_7");
-    if (choice.actionText.includes("System Failure") || isBeat7) {
-      // Beat 7: 先显示 2 秒 consequenceText，再进入终端接管
+    // 2.5 记录当前剧情节点的选择，用于后续 conditionalNarrative
+    if (currentBeatId) {
+      setChoiceHistory(prev => ({
+        ...prev,
+        [currentBeatId]: choice.id
+      }));
+    }
+
+    // 3. 检查是否触发大结局 (System Failure / 终局干预)
+    const isSystemFailureChoice = choice.actionText.includes("System Failure"); // 7C 直接坠入系统故障
+    const isInterventionBeat = currentBeatId === "beat_8_intervention";        // 阳台干预后进入终端接管
+
+    if (isSystemFailureChoice || isInterventionBeat) {
+      // 给出一点时间显示 consequence，再切到终端接管
       setTimeout(() => setIsSystemFailed(true), 2000);
-    } else if (currentBeatIndex >= storyBeats.length - 1) {
-      setTimeout(() => setIsSystemFailed(true), 1500);
-    } else {
+    } else if (currentBeatIndex < storyBeats.length - 1) {
+      // 还有后续剧情，就推进到下一 BEAT（包括 7A / 7B -> 8 阳台）
       setCurrentBeatIndex(prev => prev + 1);
+    } else {
+      // 理论上的最后一个 BEAT 兜底：稍微停顿后进入终端接管
+      setTimeout(() => setIsSystemFailed(true), 1500);
     }
   };
 
@@ -254,6 +413,7 @@ export default function GameUI() {
     setCurrentBeatIndex(0);
     setLastConsequence("");
     setIsSystemFailed(false);
+    setChoiceHistory({});
     setPlayerMessage("");
     setTerminalLog([...INITIAL_TERMINAL_LOG]);
     setLlmResponse("");
@@ -401,14 +561,19 @@ export default function GameUI() {
         </div>
       );
     }
-    // 默认：终端输入与日志
+    // 默认：终端输入与日志（手动直连界面，一屏内无滚动）
     return (
-      <div className="terminal-override">
+      <div className="terminal-override manual-input-screen">
         <div className="terminal-override-errors">
           {terminalLog.map((line, i) => (
-            <div key={i} className="terminal-error-line">{line}</div>
+            <div key={i} className="terminal-error-line">{highlightBrackets(line)}</div>
           ))}
         </div>
+        {lastConsequence && (
+          <div className="terminal-override-consequence">
+            &gt; {lastConsequence}
+          </div>
+        )}
         <p className="terminal-override-prompt">
           The system's words couldn't reach her. Now, use your own.
         </p>
@@ -418,23 +583,14 @@ export default function GameUI() {
           value={playerMessage}
           onChange={(e) => setPlayerMessage(e.target.value)}
           disabled={isTransmitting}
-          rows={4}
+          rows={3}
         />
-        <button
-          className="terminal-override-btn"
-          onClick={handleTransmit}
-          disabled={isTransmitting || !playerMessage.trim()}
-        >
-          {isTransmitting ? WAITING_MESSAGES[waitingMessageIndex] : "TRANSMIT MESSAGE"}
-        </button>
-        {transmitError && (
-          <div className="terminal-override-error-msg">{transmitError}</div>
-        )}
+        {/* LLM 的分析与判决：紧贴在输入框下面呈现 */}
         {llmResult && (
           <div className="terminal-verdict-block">
             {(displayPhase === 'typing_analysis' || displayPhase === 'pause' || displayPhase === 'typing_verdict' || displayPhase === 'done') && (
               <div className="analysis-log">
-                {(llmResult.empathy_analysis ?? '').slice(0, analysisVisibleLength)}
+                {highlightBrackets((llmResult.empathy_analysis ?? '').slice(0, analysisVisibleLength))}
                 {(displayPhase === 'typing_analysis' && analysisVisibleLength < (llmResult.empathy_analysis ?? '').length) && <span className="typewriter-cursor">|</span>}
               </div>
             )}
@@ -442,11 +598,25 @@ export default function GameUI() {
               <div
                 className={`verdict-log verdict-log--${llmResult.final_status === 'deceased' ? 'deceased' : 'survived'}`}
               >
-                {(llmResult.terminal_output ?? '').slice(0, verdictVisibleLength)}
+                {highlightBrackets((llmResult.terminal_output ?? '').slice(0, verdictVisibleLength))}
                 {(displayPhase === 'typing_verdict' && verdictVisibleLength < (llmResult.terminal_output ?? '').length) && <span className="typewriter-cursor">|</span>}
               </div>
             )}
           </div>
+        )}
+        {!llmResult && (
+          <div className="terminal-override-btn-wrap">
+            <button
+              className="terminal-override-btn"
+              onClick={handleTransmit}
+              disabled={isTransmitting || !playerMessage.trim()}
+            >
+              {isTransmitting ? WAITING_MESSAGES[waitingMessageIndex] : "> TRANSMIT_MESSAGE_"}
+            </button>
+          </div>
+        )}
+        {transmitError && (
+          <div className="terminal-override-error-msg">{transmitError}</div>
         )}
       </div>
     );
@@ -454,57 +624,84 @@ export default function GameUI() {
 
   const currentBeat = storyBeats[currentBeatIndex];
 
-  // --- 渲染常规游戏界面 ---
+  // --- 渲染常规游戏界面（赛博风：深黑 + 暗红强调 + 交互式选择卡片）---
   return (
-    <div className="game-wrapper">
-      {/* 顶部状态条 */}
-      <div className="stats-header">
-        <div className={`stat-box ${stats.energy <= 20 ? 'danger-pulse' : ''}`}>
-          <span>🔋 Energy</span>
-          <span className="stat-value">{stats.energy}%</span>
+    <div className="game-wrapper h-screen min-h-0 w-full max-w-4xl mx-auto flex flex-col bg-[#000000] font-mono text-[#d1d5db] overflow-hidden">
+      {/* 顶部状态栏：时间、电量、Sensory、Pressure、Pending Revocation */}
+      <header className="cyber-status-bar flex-shrink-0 flex flex-row flex-nowrap items-center justify-start gap-4 px-3 py-2 border-b border-white/10 overflow-x-auto">
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-sm text-[#d1d5db]">
+          <span aria-hidden>⏰</span>
+          <span>{currentBeat.timeLabel}</span>
+        </div>
+        <div className={`flex items-center gap-1.5 whitespace-nowrap text-sm ${stats.energy <= 20 ? 'text-red-500 font-semibold' : 'text-[#d1d5db]'}`}>
+          <span aria-hidden>🔋</span>
+          <span>{stats.energy}%</span>
         </div>
         <div
-          className={`stat-box stat-box-gaslight ${stats.sensory >= 80 ? 'danger-pulse' : ''}`}
+          className={`flex items-center gap-1.5 whitespace-nowrap text-sm ${stats.sensory >= 80 ? 'text-red-500 font-semibold' : 'text-[#d1d5db]'}`}
           title="Stop overreacting (别反应过度) · It's all in your head (都是你脑补的)"
         >
-          <span>🔊 Sensory</span>
-          <span className="stat-value">{stats.sensory}%</span>
+          <span aria-hidden>🔊</span>
+          <span>Sensory {stats.sensory}%</span>
         </div>
-        <div className={`stat-box ${stats.pressure >= 80 ? 'danger-pulse' : ''}`}>
-          <span>👤 Pressure</span>
-          <span className="stat-value">{stats.pressure}%</span>
+        <div className={`flex items-center gap-1.5 whitespace-nowrap text-sm ${stats.pressure >= 80 ? 'text-red-500 font-semibold' : 'text-[#d1d5db]'}`}>
+          <span aria-hidden>👤</span>
+          <span>Pressure {stats.pressure}%</span>
         </div>
-      </div>
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-sm text-[#d1d5db] ml-auto">
+          <span>Work Visa: </span>
+          <span>Pending Revocation</span>
+        </div>
+      </header>
 
-      {/* 剧情区域：上一轮结果在上，本 beat 内容在下 */}
-      <div className="story-area">
+      {/* 中间剧情区：引用式叙述 + 可选警告前缀 */}
+      <div className="cyber-story-area flex-[0_0_45%] min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 border-l border-white/10 mx-2 my-2 bg-black/40">
         {lastConsequence && (
-          <div className="consequence-box">
-            {'>'} {lastConsequence}
+          <div className="consequence-box mb-3 px-2 py-1.5 border-l-2 border-green-500/40 bg-green-500/15 text-[#a0a0a0] italic text-sm">
+            &gt; {lastConsequence}
           </div>
         )}
-        <div className="story-meta">[{currentBeat.timeLabel}]</div>
-        <h2 className="story-title">{currentBeat.title}</h2>
-        <p className="story-text">{currentBeat.narrativeText}</p>
+        <h2 className="story-title border-b border-white/10 pb-1 mb-2 text-base font-semibold text-[#d1d5db]">[{currentBeat.timeLabel}] {currentBeat.title}</h2>
+        <p className="cyber-narrative text-sm leading-relaxed text-[#d1d5db]">
+          &quot;{currentBeat.narrativeText}&quot;
+        </p>
+        {currentBeat.id === "beat_4_hr_ambush" && currentBeat.conditionalNarrative && (() => {
+          const firstBeatChoiceId = choiceHistory["beat_1_the_delay"];
+          let conditionalText = "";
+          if (firstBeatChoiceId === "1A") conditionalText = currentBeat.conditionalNarrative.if_1A;
+          else if (firstBeatChoiceId === "1B") conditionalText = currentBeat.conditionalNarrative.if_1B;
+          else if (firstBeatChoiceId === "1C") conditionalText = currentBeat.conditionalNarrative.if_1C;
+          return conditionalText ? <p className="cyber-narrative text-sm leading-relaxed text-[#d1d5db] mt-2">&quot;{conditionalText}&quot;</p> : null;
+        })()}
       </div>
 
-      {/* 选项区域 */}
-      <div className="choices-container">
+      {/* 底部：玻璃拟态选择卡片，三列等宽；高度取该行中最大值 */}
+      <div className="cyber-choices flex-[0_0_45%] min-h-0 grid grid-cols-3 items-stretch gap-4 p-4 border-t border-white/10 bg-[#000000] overflow-y-auto">
         {currentBeat.choices.map((choice) => {
           const { disabled, reason } = checkIsDisabled(choice.requirements);
+          const isActive = hoveredChoiceId === choice.id;
           return (
-            <button 
+            <button
               key={choice.id}
-              className={`choice-btn ${disabled ? 'disabled-btn' : ''}`}
+              className={`cyber-choice-card w-full h-full rounded border bg-white/5 py-2 px-3 text-left font-mono text-sm transition-all duration-300 ease-out ${
+                disabled
+                  ? 'opacity-60 cursor-not-allowed border-white/10 text-white/50'
+                  : isActive
+                    ? 'cyber-choice-card--active border-[#7f1d1d] bg-[#7f1d1d]/30 text-[#7f1d1d]'
+                    : 'border-white/20 text-white/80 hover:border-[#7f1d1d]/60 hover:bg-[#7f1d1d]/10'
+              }`}
               disabled={disabled}
-              onClick={() => handleChoiceClick(choice)}
+              onClick={() => !disabled && handleChoiceClick(choice)}
+              onMouseEnter={() => setHoveredChoiceId(choice.id)}
+              onMouseLeave={() => setHoveredChoiceId(null)}
             >
-              <div className="choice-content">
-                <span className="action-text">{choice.actionText}</span>
-                {choice.impactHint && <span className="impact-hint">{choice.impactHint}</span>}
+              <div className={isActive ? 'text-left' : 'text-center'}>
+                <div className={`font-mono ${disabled ? 'line-through' : ''} ${isActive ? 'text-base font-semibold text-[#7f1d1d]' : 'text-sm text-white/80'}`}>
+                  {choice.actionText}
+                </div>
               </div>
               {disabled && (
-                <div className="disabled-reason">⚠️ {choice.disabledReason || reason}</div>
+                <div className="mt-2 text-xs text-red-300/90">⚠️ {choice.disabledReason || reason}</div>
               )}
             </button>
           );
