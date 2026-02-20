@@ -3,7 +3,7 @@ export const storyBeats = [
     "id": "beat_1_the_delay",
     "timeLabel": "07:30 AM",
     "title": "The Station Void",
-    "narrativeText": "The subway train sits motionless in the tunnel. The air is a sickening mix of cheap perfume, sweat, and mechanical grease—a sensory assault that makes your stomach churn. The doors remain open as the automated voice mechanically repeats: 'We are held at the station due to signal issues ahead.' Sammie's '8:00 AM sharp' mandate—a rule weaponized exclusively against you—rings like a death knell in your racing brain. You take a deep breath, stepping back out to beg a station attendant for a handwritten proof of delay, but he waves you off with an annoyed scowl. The countdown is closing in. Your body begins to betrayed you with involuntary tremors (stimming).",
+    "narrativeText": "The subway train sits motionless at the station. The air is a sickening mix of cheap perfume, sweat, and mechanical grease—a sensory assault that makes your stomach churn. The doors remain open as the automated voice mechanically repeats: 'We are held at the station due to signal issues ahead.' Sammie's '8:00 AM sharp' mandate—a rule weaponized exclusively against you—rings like a death knell in your racing brain. You take a deep breath, stepping back out to beg a station attendant for a handwritten proof of delay, but he waves you off with an annoyed scowl. The countdown is closing in. Your body begins to betrayed you with involuntary tremors (stimming).",
     "choices": [
       {
         "id": "1A",
@@ -221,7 +221,7 @@ export const storyBeats = [
       "if_5A": "Even though you pushed through hell to deliver a near-perfect presentation at 5 PM, Sammie's email claims you 'did not meet expectations', lacked executive presence, were too defensive under feedback, and leaned on a colleague for core data processing.",
       "if_5B_or_5C": "The 5 PM checkpoint passed in a blur of static. Sammie's email, timestamped 5:01 PM, coldly asserts that you failed to deliver, showed zero accountability, and withdrew from the meeting in a way that 'confirms your inability to perform basic job functions or follow corporate standards.'"
     },
-    "bridgeText": "In the dark, you swear you can smell Sammie's suffocating perfume. Your eyes drift to the calendar on the wall—you are on an H1B work visa. Once the PIP fails and you are terminated, you have exactly 60 days to pack up your entire life and leave. The bridge behind you is burned; ahead lies only a cliff.",
+    "bridgeText": "In the dark, you swear you can smell Sammie's suffocating perfume. Your eyes drift to the calendar on the wall—you are on an work visa. Once the PIP fails and you are terminated, you have exactly 60 days to pack up your entire life and leave. The bridge behind you is burned; ahead lies only a cliff.",
     "choices": [
       {
         "id": "7A",
@@ -238,12 +238,12 @@ export const storyBeats = [
         "impactHint": "Absolute abandonment",
         "consequenceText": "The numbers of the ticket prices blur into smeared blocks of color. Accompanied by deafening tinnitus, your brain cuts off its final blood supply. The whole world begins to collapse...",
         "statsImpact": { "energy": -99, "sensoryOverload": 99, "managerPressure": 99 },
-        "requirements": { "maxManagerPressure": 15 },
-        "disabledReason": "System Crash Warning: Senses overloaded to maximum capacity. Visual processing module failed. Execution failed."
-      },
+        "requirements": { "maxSensory": 60 }, 
+        "disabledReason": "System Crash Warning: Sensory overload at maximum capacity. Visual processing module failed. Execution failed."
+},
       {
         "id": "7C",
-        "actionText": "[System Failure] Close your eyes. In this cramped, dark room, abandon all masking. Wait for the final freefall.",
+        "actionText": "[System Failure] Close your eyes. In this cramped, dark room, abandon all masking. Wait for the final free fall.",
         "impactHint": "⚠️ Critical Point Reached",
         "consequenceText": "Your heartbeat is deafening. Every external rule, every mask, the login records, Conrad's kindness, the visa countdown—they all crush you in this single moment. Your consciousness blurs. The UI is disintegrating... [Terminal Override Sequence Initiated]",
         "statsImpact": { "energy": -100, "sensoryOverload": 100, "managerPressure": 100 },
@@ -266,9 +266,9 @@ export const storyBeats = [
       },
       {
         "id": "8B",
-        "actionText": "[The Logical Fixer] 'Think about your H1B visa! You've worked 10 years for this. Just endure the PIP, be rational. Don't throw your life away over a temporary problem.'",
+        "actionText": "[The Logical Fixer] 'Think about your work visa! You've worked 10 years for this. Just endure the PIP, be rational. Don't throw your life away over a temporary problem.'",
         "statsImpact": { "energy": -100, "sensoryOverload": 100, "managerPressure": 100 },
-        "consequenceText": "A bitter smile crosses Lynn's face. 'Rational? The H1B is the cage. My right to exist depends on bleeding for Sammie. Your 'logic' is exactly why I'm standing here.'"
+        "consequenceText": "A bitter smile crosses Lynn's face. 'Rational? The work is the cage. My right to exist depends on bleeding for Sammie. Your 'logic' is exactly why I'm standing here.'"
       },
       {
         "id": "8C",

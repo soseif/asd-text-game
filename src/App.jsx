@@ -17,97 +17,221 @@ function highlightBrackets(text) {
   );
 }
 
-const SPAM_MESSAGES = [
-  { id: 'msg1', sender: 'Sammie (Manager)', text: "quick sync? ping me when you see this.", delay: 800 },
-  { id: 'msg2', sender: 'Sammie (Manager)', text: "Can you take this ad-hoc ticket real quick? Client is waiting.", delay: 1500 },
-  { id: 'msg3', sender: 'Sammie (Manager)', text: "Lynn? Your dot has been yellow for 4 minutes.", delay: 2200 },
-  { id: 'msg4', sender: 'Sammie (Manager)', text: "I noticed yesterday you blocked your calendar from 2 to 3. Where do you need to be?", delay: 3000 },
-  { id: 'msg5', sender: 'Sammie (Manager)', text: "Lynn, asking me to review your daily checklist is not a 'reasonable accommodation.' I expect self-sufficiency. Hand-holding you is unfair to the rest of the team.", delay: 3800 },
-  { id: 'msg6', sender: 'Sammie (Manager)', text: "I am not going to write down everything we just discussed. You need to learn to 'read between the lines', Lynn. This rigidity is exactly why you are on a PIP.", delay: 4700 },
-  { id: 'msg7', sender: 'Sammie (Manager)', text: "David mentioned he 'helped' you write that script yesterday. Are we evaluating your performance or his? You need to be self-sufficient.", delay: 5600 },
-  { id: 'msg8', sender: 'Sammie (Manager)', text: "Also, wearing those giant headphones at your desk sends a very hostile message to the floor.", delay: 6500 },
-  { id: 'uscis', sender: 'USCIS_AUTO_ALERT', text: "WARNING: Upon termination, your H1B status will be revoked. 60 days to deportation.", delay: 7800, isAlert: true },
-  { id: 'fatal', sender: 'SYSTEM_FATAL', text: "Subject vitals flatlining. Neural link collapsing.", delay: 9000, isFatal: true }
+/** 弹窗在打字机打到以下关键词时依次触发（按顺序） */
+const KEYWORD_TRIGGERS = [
+  { keyword: 'Sammie', id: 'msg1' },
+  { keyword: 'Performance Improvement Plan (PIP):', id: 'msg2' },
+  { keyword: 'REQ: Written ', id: 'msg3' },
+  { keyword: 'PIP LOG: "Rigid,', id: 'msg4' },
+  { keyword: 'REQ: Noise-', id: 'msg5' },
+  { keyword: 'PIP LOG: "Hostile', id: 'msg6' },
+  { keyword: 'transparency.', id: 'msg7' },
+  { keyword: '10 years', id: 'msg8' },
+  { keyword: 'Surviving ', id: 'immigration' },
+  { keyword: 'Battery.', id: 'fatal' },
 ];
+
+const SPAM_MESSAGES = [
+  { id: 'msg1', sender: 'Sammie', text: "Quick sync?" },
+  { id: 'msg2', sender: 'Sammie', text: "Can you take this ad-hoc ticket?" },
+  { id: 'msg3', sender: 'Sammie', text: "Lynn? Your dot has been yellow for 4 minutes." },
+  { id: 'msg4', sender: 'Sammie', text: "I noticed yesterday you blocked your calendar from 2 to 3. Where do you need to be?" },
+  { id: 'msg5', sender: 'Sammie', text: "Lynn, asking me to verify your daily checklist is not a 'reasonable accommodation.' Hand-holding you is unfair to the team." },
+  { id: 'msg6', sender: 'Sammie', text: "I'm not writing down our conversation. You need to learn to 'read between the lines.' This rigidity is why you're on the PIP." },
+  { id: 'msg7', sender: 'Sammie', text: "David said he helped you debug. I told you to 'be more collaborative', not to have others do your job. Are we evaluating him or you?" },
+  { id: 'msg8', sender: 'Sammie', text: "Also, wearing those giant headphones at your desk sends a very hostile message to the floor." },
+  { id: 'immigration', sender: 'IMMIGRATION_SYS_DO_NOT_REPLY', text: "OFFICIAL NOTICE: Upon cessation of sponsored employment, your work visa will be invalidated. 60-day grace period activated. Unlawful presence will result in forced removal.", isAlert: true },
+  { id: 'fatal', sender: 'SYSTEM_FATAL', text: "Subject vitals flatlining. Neural link collapsing.", isFatal: true },
+];
+/** 致命弹窗出现后，延迟多久显示最后一句任务线 */
+const FINAL_LINE_DELAY_MS = 500;
+
+/** ~55ms per char ≈ comfortable reading speed. Each segment types this text (label shown at start for blocks). */
+const INTRO_TEXTS = [
+  ">> SYSTEM_ALERT: FATAL UNRAVELLING DETECTED.",
+  ">> INITIATING TIMELINE RECOVERY: T-MINUS 24 HOURS.",
+  "Lynn is trapped in a rigged system. Her manager, Sammie, views her Autism (ASD) not as a neurological difference, but as a \"lazy excuse.\" Every request for reasonable accommodation is weaponized into a lethal Performance Improvement Plan (PIP):\n\n> REQ: Written instructions.      |  PIP LOG: \"Rigid, demands excessive hand-holding.\"\n> REQ: Noise-canceling headphones.|  PIP LOG: \"Hostile demeanor, not a team player.\"\n> REQ: Blocked calendar for focus.|  PIP LOG: \"Time theft, lack of transparency.\"",
+  "This job is her only lifeline. Lynn's work visa is tethered to this hostile desk. If the PIP fails, 10 years of building a safe, structured life evaporate into a 60-day deportation countdown. With her homeland offering even less acceptance for neurodivergence, returning means erasure. There is no \"home\" to go back to.",
+  "Surviving this intersection of corporate cruelty and fragile immigrant identity is bleeding her dry. The system is designed to break her.",
+  "",
+  "",
+  ">> The timeline has been rewound. You have exactly 24 hours.",
+  ">> Can you reach out and catch her before she hits the ground?"
+];
+const INTRO_LABELS = [
+  null,
+  null,
+  "[ PERFORMANCE_STATUS: CRITICAL ]",
+  "[ SYSTEMIC_THREAT: EXILE_IMMINENT ]",
+  "[ NEURAL_CAPACITY: DEPLETED ]",
+  null,
+  null,
+  null,
+  null
+];
+const TYPEWRITER_MS_PER_CHAR = 52;
 
 function StartScreen({ onStart }) {
   const [hasEnteredIntro, setHasEnteredIntro] = useState(false);
-  /** 出现顺序：新来的在数组头 */
+  /** 0..8: current segment. 7 = typewriter stops; 8 = shown by popup-phase timer. */
+  const [segmentIndex, setSegmentIndex] = useState(0);
+  /** How many chars visible in current segment. */
+  const [charIndex, setCharIndex] = useState(0);
+  /** Set true when final-line timer fires; shows segment 8. */
+  const [showFinalLine, setShowFinalLine] = useState(false);
   const [visibleOrder, setVisibleOrder] = useState(() => []);
+  const poppedIdsRef = useRef(new Set());
+  const finalLineTimerRef = useRef(null);
+
+  // Typewriter: one character every TYPEWRITER_MS_PER_CHAR; advance segment when current text done; stop at end of segment 7
+  useEffect(() => {
+    if (!hasEnteredIntro || segmentIndex >= 8) return;
+    const text = INTRO_TEXTS[segmentIndex];
+    if (charIndex >= text.length) {
+      if (segmentIndex >= 7) return;
+      setSegmentIndex((s) => s + 1);
+      setCharIndex(0);
+      return;
+    }
+    const t = setTimeout(() => setCharIndex((c) => c + 1), TYPEWRITER_MS_PER_CHAR);
+    return () => clearTimeout(t);
+  }, [hasEnteredIntro, segmentIndex, charIndex]);
+
+  // 根据当前已打出的全文检查关键词，按顺序触发弹窗
+  const getFullVisibleIntroText = () => {
+    let s = '';
+    for (let i = 0; i <= segmentIndex; i++) {
+      if (i < segmentIndex) s += INTRO_TEXTS[i];
+      else s += INTRO_TEXTS[i].slice(0, charIndex);
+      if (i < segmentIndex) s += '\n';
+    }
+    return s;
+  };
 
   useEffect(() => {
     if (!hasEnteredIntro) return;
-    const timers = SPAM_MESSAGES.map((m) =>
-      setTimeout(() => {
-        setVisibleOrder((prev) => [m.id, ...prev]);
-      }, m.delay)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [hasEnteredIntro]);
+    const fullText = getFullVisibleIntroText();
+    for (const { keyword, id } of KEYWORD_TRIGGERS) {
+      if (poppedIdsRef.current.has(id)) continue;
+      if (fullText.includes(keyword)) {
+        poppedIdsRef.current.add(id);
+        setVisibleOrder((prev) => [id, ...prev]);
+        if (id === 'fatal') {
+          if (finalLineTimerRef.current) clearTimeout(finalLineTimerRef.current);
+          finalLineTimerRef.current = setTimeout(() => setShowFinalLine(true), FINAL_LINE_DELAY_MS);
+        }
+        break;
+      }
+    }
+  }, [hasEnteredIntro, segmentIndex, charIndex]);
+
+  useEffect(() => {
+    return () => {
+      if (finalLineTimerRef.current) clearTimeout(finalLineTimerRef.current);
+    };
+  }, []);
 
   const dismiss = (id, e) => {
     e.stopPropagation();
     setVisibleOrder((prev) => prev.filter((x) => x !== id));
   };
 
-  // 第一屏：只有标题 + Enter game
+  const visibleText = (segIdx) => {
+    if (segIdx > segmentIndex) return null;
+    if (segIdx < segmentIndex) return INTRO_TEXTS[segIdx];
+    return INTRO_TEXTS[segIdx].slice(0, charIndex);
+  };
+  const showSegment8 = showFinalLine;
+
+  // 第一屏：赛博感 intro（电路板 + 霓虹标题 + 全息城市场景 + HUD）
   if (!hasEnteredIntro) {
     return (
       <div className="intro-minimal">
-        <div className="title-hero title-hero--center">
-          <h1 className="glitch-title">24 Hours of Sodom</h1>
-          <h2 className="glitch-subtitle">Too Loud a Solitude</h2>
+        {/* 电路板背景层 */}
+        <div className="intro-circuit-bg" aria-hidden />
+        {/* 上层线缆 */}
+        <div className="intro-wires" aria-hidden />
+        {/* 全息城市场景 */}
+        <div className="intro-city intro-city--tl" aria-hidden />
+        <div className="intro-city intro-city--tr" aria-hidden />
+        <div className="intro-city intro-city--bl" aria-hidden />
+        <div className="intro-city intro-city--center" aria-hidden />
+        {/* HUD 角标 */}
+        <div className="intro-hud intro-hud--tl" aria-hidden />
+        <div className="intro-hud intro-hud--tr" aria-hidden />
+        <div className="intro-hud intro-hud--br" aria-hidden />
+        <div className="intro-hud intro-hud--bl" aria-hidden />
+        {/* 主内容 */}
+        <div className="intro-content-wrap">
+          <div className="title-hero title-hero--center">
+            <h1 className="glitch-title glitch-title--intro">24 Hours of Sodom</h1>
+            <h2 className="glitch-subtitle glitch-subtitle--intro">Too Loud a Solitude</h2>
+          </div>
+          <button className="enter-game-btn" onClick={() => setHasEnteredIntro(true)}>
+            &gt; Enter game<span className="enter-game-cursor">_</span>
+          </button>
         </div>
-        <button className="enter-game-btn" onClick={() => setHasEnteredIntro(true)}>
-          Enter game
-        </button>
       </div>
     );
   }
 
-  // 第二屏：大段文字 + 弹窗 + INITIATE_LINK
+  // 第二屏：打字机逐字打出，NEURAL_CAPACITY 后不规则弹窗，最后一句在最后一条弹窗之后
+  const isTyping = (idx) => segmentIndex === idx && charIndex < INTRO_TEXTS[idx].length;
+  const cursor = <span className="typewriter-cursor">|</span>;
+  const renderSegment = (idx, asBlock = false, className = '') => {
+    const t = visibleText(idx);
+    if (t == null) return null;
+    const label = INTRO_LABELS[idx];
+    const showCursor = isTyping(idx);
+    if (asBlock && label) {
+      return (
+        <div className="data-block">
+          <span className="block-label">{label}</span>
+          <p>{t}{showCursor && cursor}</p>
+        </div>
+      );
+    }
+    if (asBlock) return <p className={className}>{t}{showCursor && cursor}</p>;
+    return <span className={className}>{t}{showCursor && cursor}</span>;
+  };
+
   return (
     <div className="diagnostic-report relative-container">
-      {/* 赛博感主标题 */}
       <div className="title-hero">
         <h1 className="glitch-title">24 Hours of Sodom</h1>
         <h2 className="glitch-subtitle">Too Loud a Solitude</h2>
       </div>
-      {/* 底层：静态的剧情梗概 */}
       <div className="report-header">
-        <span className="critical-warning">&gt;&gt; SYSTEM_ALERT: 24 hours until complete unravelling.</span>
+        {segmentIndex >= 0 && (segmentIndex > 0 ? <span className="critical-warning">{INTRO_TEXTS[0]}</span> : renderSegment(0, false, 'critical-warning'))}
+        {segmentIndex >= 1 && (segmentIndex > 1 ? <span className="critical-warning">{INTRO_TEXTS[1]}</span> : renderSegment(1, false, 'critical-warning'))}
       </div>
 
       <div className="report-body">
-        <div className="data-block">
-          <span className="block-label">[ NEURAL_STATUS ]</span>
-          <p>As someone on the Autism Spectrum (ASD), your world is a relentless storm of information. For three weeks, you've survived on just 3 hours of sleep a night, trapped in a "logical loop" trying to decode every subtext in your micromanager Sammie's emails.</p>
-        </div>
-
-        <div className="data-block">
-          <span className="block-label">[ SENSORY_OVERLOAD ]</span>
-          <p>Your sensory filters are shattered: the screech of subway brakes feels like a blade against your eardrums; a colleague's perfume lingers like thick, toxic gas. To Sammie, your "awkwardness" is a lack of professionalism. To you, simply maintaining the "Mask" of a 'normal' human has drained every ounce of your life force.</p>
-        </div>
-
-        <div className="data-block">
-          <span className="block-label">[ SYSTEMIC_THREAT ]</span>
-          <p>Your H1B visa is tethered to a failing Performance Improvement Plan. If the system ejects you, the only structured, safe world you've built over 10 years will vanish.</p>
-        </div>
+        {[2, 3, 4].map((idx) => {
+          if (segmentIndex < idx) return null;
+          if (segmentIndex > idx) return <div key={idx} className="data-block"><span className="block-label">{INTRO_LABELS[idx]}</span><p>{INTRO_TEXTS[idx]}</p></div>;
+          return <React.Fragment key={idx}>{renderSegment(idx, true)}</React.Fragment>;
+        })}
+        {segmentIndex > 5 && <p className="report-standalone">{INTRO_TEXTS[5]}</p>}
+        {segmentIndex === 5 && renderSegment(5, true, 'report-standalone')}
+        {segmentIndex > 6 && <p className="report-standalone">{INTRO_TEXTS[6]}</p>}
+        {segmentIndex === 6 && renderSegment(6, true, 'report-standalone')}
       </div>
 
       <div className="report-footer">
-        <p className="mission-objective">Can you help Lynn find a single breath of air amidst the noise and shadows?</p>
+        {segmentIndex > 7 && <p className="mission-objective">{INTRO_TEXTS[7]}</p>}
+        {segmentIndex === 7 && <p className="mission-objective">{visibleText(7)}{isTyping(7) && cursor}</p>}
+        {showSegment8 && <p className="mission-objective">{INTRO_TEXTS[8]}</p>}
         <button className="start-btn" onClick={onStart}>
           &gt; INITIATE_LINK<span className="start-cursor">_</span>
         </button>
       </div>
 
-      {/* 表层：通知列表不重叠，区域可上下滚动 */}
       <div className="notification-center">
         {visibleOrder.map((id) => {
           const m = SPAM_MESSAGES.find((msg) => msg.id === id);
           if (!m) return null;
-          const header = m.isFatal ? '🔴 SYSTEM_FATAL' : m.isAlert ? '⚠️ USCIS_AUTO_ALERT' : '💬 SLACK_MESSAGE';
+          const header = m.isFatal ? '🔴 SYSTEM_FATAL' : m.isAlert ? '⚠️ IMMIGRATION_AUTO_ALERT' : '💬 SLACK_MESSAGE';
           return (
             <div
               key={m.id}
@@ -124,7 +248,7 @@ function StartScreen({ onStart }) {
                 </button>
               </div>
               <div className={`popup-body ${m.isFatal ? 'blinking-text' : ''}`}>
-                {m.sender.includes('Sammie') ? <><strong>{m.sender}:</strong> "{m.text}"</> : m.text}
+                {m.sender.includes('Sammie') ? <><strong>{m.sender}:</strong> &quot;{m.text}&quot;</> : m.text}
               </div>
             </div>
           );
@@ -169,7 +293,6 @@ export default function GameUI() {
   const waitingIntervalRef = useRef(null);
   const outcomeDelayRef = useRef(null);
   const reportButtonDelayRef = useRef(null);
-
   const TYPEWRITER_MS = 28;
   const PAUSE_AFTER_ANALYSIS_MS = 3000;
   const VERDICT_TO_OUTCOME_DELAY_MS = 3000;
@@ -408,6 +531,7 @@ export default function GameUI() {
   ];
 
   const resetGame = () => {
+    setIsGameStarted(false);
     setHasSeenIntro(false);
     setStats({ energy: 100, sensory: 0, pressure: 0 });
     setCurrentBeatIndex(0);
@@ -434,7 +558,9 @@ export default function GameUI() {
     try {
       const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-      const userPrompt = LYNN_SYSTEM_PROMPT + "\n\nUser Message: " + playerMessage.trim();
+      const userInput = playerMessage.trim();
+      console.log("User Input:", userInput);
+      const userPrompt = LYNN_SYSTEM_PROMPT + "\n\nUser Message: " + userInput;
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: userPrompt,
@@ -575,7 +701,7 @@ export default function GameUI() {
           </div>
         )}
         <p className="terminal-override-prompt">
-          The system's words couldn't reach her. Now, use your own.
+          The system's words couldn't reach Lynn. Now, use your own.
         </p>
         <textarea
           className="terminal-override-input"
@@ -626,43 +752,45 @@ export default function GameUI() {
 
   // --- 渲染常规游戏界面（赛博风：深黑 + 暗红强调 + 交互式选择卡片）---
   return (
-    <div className="game-wrapper h-screen min-h-0 w-full max-w-4xl mx-auto flex flex-col bg-[#000000] font-mono text-[#d1d5db] overflow-hidden">
-      {/* 顶部状态栏：时间、电量、Sensory、Pressure、Pending Revocation */}
-      <header className="cyber-status-bar flex-shrink-0 flex flex-row flex-nowrap items-center justify-start gap-4 px-3 py-2 border-b border-white/10 overflow-x-auto">
-        <div className="flex items-center gap-1.5 whitespace-nowrap text-sm text-[#d1d5db]">
-          <span aria-hidden>⏰</span>
-          <span>{currentBeat.timeLabel}</span>
+    <div className="game-wrapper min-h-screen h-screen w-full mx-auto flex flex-col bg-[#080b08] font-mono text-[#889988] overflow-hidden">
+      {/* 顶部状态栏：时间、电量、Sensory、Pressure、Pending Revocation；琥珀色点缀关键指标 */}
+      <header className="cyber-status-bar flex-shrink-0 flex flex-row flex-nowrap items-center justify-start gap-4 px-3 py-2 border-b border-[#334433] overflow-x-auto">
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-sm">
+          <span aria-hidden className="text-[#889988]">⏰</span>
+          <span className="text-amber-500">{currentBeat.timeLabel}</span>
         </div>
-        <div className={`flex items-center gap-1.5 whitespace-nowrap text-sm ${stats.energy <= 20 ? 'text-red-500 font-semibold' : 'text-[#d1d5db]'}`}>
-          <span aria-hidden>🔋</span>
-          <span>{stats.energy}%</span>
+        <div className={`flex items-center gap-1.5 whitespace-nowrap text-sm ${stats.energy <= 20 ? 'text-red-500 font-semibold' : ''}`}>
+          <span aria-hidden className="text-[#889988]">🔋</span>
+          <span className={stats.energy <= 20 ? '' : 'text-amber-500'}>{stats.energy}%</span>
         </div>
         <div
-          className={`flex items-center gap-1.5 whitespace-nowrap text-sm ${stats.sensory >= 80 ? 'text-red-500 font-semibold' : 'text-[#d1d5db]'}`}
+          className={`flex items-center gap-1.5 whitespace-nowrap text-sm ${stats.sensory >= 80 ? 'text-red-500 font-semibold' : 'text-[#889988]'}`}
           title="Stop overreacting (别反应过度) · It's all in your head (都是你脑补的)"
         >
           <span aria-hidden>🔊</span>
           <span>Sensory {stats.sensory}%</span>
         </div>
-        <div className={`flex items-center gap-1.5 whitespace-nowrap text-sm ${stats.pressure >= 80 ? 'text-red-500 font-semibold' : 'text-[#d1d5db]'}`}>
+        <div className={`flex items-center gap-1.5 whitespace-nowrap text-sm ${stats.pressure >= 80 ? 'text-red-500 font-semibold' : 'text-[#889988]'}`}>
           <span aria-hidden>👤</span>
           <span>Pressure {stats.pressure}%</span>
         </div>
-        <div className="flex items-center gap-1.5 whitespace-nowrap text-sm text-[#d1d5db] ml-auto">
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-sm ml-auto text-amber-700/90">
           <span>Work Visa: </span>
           <span>Pending Revocation</span>
         </div>
       </header>
 
-      {/* 中间剧情区：引用式叙述 + 可选警告前缀 */}
-      <div className="cyber-story-area flex-[0_0_45%] min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 border-l border-white/10 mx-2 my-2 bg-black/40">
+      {/* 中段黑色区域：填满屏幕剩余高度，延伸至底部 */}
+      <div className="flex-1 flex flex-col min-h-0 bg-[#080b08]">
+        {/* 中间剧情区：占满剩余空间并在内部滚动 */}
+        <div className="cyber-story-area flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 border-l border-[#334433] mx-2 my-2 bg-[#080b08]/60">
         {lastConsequence && (
-          <div className="consequence-box mb-3 px-2 py-1.5 border-l-2 border-green-500/40 bg-green-500/15 text-[#a0a0a0] italic text-sm">
+          <div className="consequence-box mb-3 text-[#e2e8f0]">
             &gt; {lastConsequence}
           </div>
         )}
-        <h2 className="story-title border-b border-white/10 pb-1 mb-2 text-base font-semibold text-[#d1d5db]">[{currentBeat.timeLabel}] {currentBeat.title}</h2>
-        <p className="cyber-narrative text-sm leading-relaxed text-[#d1d5db]">
+        <h2 className="story-title border-b border-[#334433] pb-1 mb-2 text-base font-semibold text-[#e2e8f0]">[{currentBeat.timeLabel}] {currentBeat.title}</h2>
+        <p className="cyber-narrative text-sm leading-relaxed text-[#e2e8f0]">
           &quot;{currentBeat.narrativeText}&quot;
         </p>
         {currentBeat.id === "beat_4_hr_ambush" && currentBeat.conditionalNarrative && (() => {
@@ -671,41 +799,73 @@ export default function GameUI() {
           if (firstBeatChoiceId === "1A") conditionalText = currentBeat.conditionalNarrative.if_1A;
           else if (firstBeatChoiceId === "1B") conditionalText = currentBeat.conditionalNarrative.if_1B;
           else if (firstBeatChoiceId === "1C") conditionalText = currentBeat.conditionalNarrative.if_1C;
-          return conditionalText ? <p className="cyber-narrative text-sm leading-relaxed text-[#d1d5db] mt-2">&quot;{conditionalText}&quot;</p> : null;
+          return conditionalText ? <p className="cyber-narrative text-sm leading-relaxed text-[#e2e8f0] mt-2">&quot;{conditionalText}&quot;</p> : null;
         })()}
-      </div>
+        </div>
 
-      {/* 底部：玻璃拟态选择卡片，三列等宽；高度取该行中最大值 */}
-      <div className="cyber-choices flex-[0_0_45%] min-h-0 grid grid-cols-3 items-stretch gap-4 p-4 border-t border-white/10 bg-[#000000] overflow-y-auto">
+        {/* 底部：选项卡片默认沉色；悬停终端绿/琥珀泛光；保留红色 Logic Anchoring 态 */}
+        <div className="cyber-choices flex-shrink-0 flex flex-row items-start gap-4 p-4 border-t border-[#334433] bg-[#080b08] overflow-x-auto overflow-y-visible">
         {currentBeat.choices.map((choice) => {
           const { disabled, reason } = checkIsDisabled(choice.requirements);
           const isActive = hoveredChoiceId === choice.id;
+          const hasImpact = Boolean(choice.impactHint);
+          const isLogicAnchoring = choice.actionText && choice.actionText.includes('Logic Anchoring');
           return (
             <button
               key={choice.id}
-              className={`cyber-choice-card w-full h-full rounded border bg-white/5 py-2 px-3 text-left font-mono text-sm transition-all duration-300 ease-out ${
+              className={`cyber-choice-card rounded border py-4 text-left font-mono text-sm transition-all duration-300 ease-out overflow-visible ${
                 disabled
-                  ? 'opacity-60 cursor-not-allowed border-white/10 text-white/50'
-                  : isActive
-                    ? 'cyber-choice-card--active border-[#7f1d1d] bg-[#7f1d1d]/30 text-[#7f1d1d]'
-                    : 'border-white/20 text-white/80 hover:border-[#7f1d1d]/60 hover:bg-[#7f1d1d]/10'
+                  ? 'opacity-60 cursor-not-allowed border-[#334433] bg-white/[0.03] text-[#889988]/60'
+                  : isActive && isLogicAnchoring
+                    ? 'cyber-choice-card--active border-[#7f1d1d] bg-[#7f1d1d]/30 text-[#f9fafb]'
+                    : isActive
+                      ? 'cyber-choice-card--hover border-[#39ff14]/70 bg-green-900/20 text-[#c8ffb4]'
+                      : 'border-[#334433] bg-white/[0.04] text-[#889988]'
               }`}
               disabled={disabled}
               onClick={() => !disabled && handleChoiceClick(choice)}
               onMouseEnter={() => setHoveredChoiceId(choice.id)}
               onMouseLeave={() => setHoveredChoiceId(null)}
             >
-              <div className={isActive ? 'text-left' : 'text-center'}>
-                <div className={`font-mono ${disabled ? 'line-through' : ''} ${isActive ? 'text-base font-semibold text-[#7f1d1d]' : 'text-sm text-white/80'}`}>
-                  {choice.actionText}
+              <div className="flex h-full flex-col justify-between">
+                {/* 上方：主要操作文案，左对齐 */}
+                <div className="text-left">
+                  <div
+                    className={`leading-relaxed ${
+                      disabled ? 'line-through' : ''
+                    } ${
+                      isActive && isLogicAnchoring ? 'text-base font-semibold text-[#f9fafb]' :
+                      isActive ? 'text-base font-semibold text-[#c8ffb4]' : 'text-sm text-[#889988]'
+                    }`}
+                  >
+                    {choice.actionText}
+                  </div>
                 </div>
+
+                {/* 下方：Impact 区域，仅在 hover/active 时淡入显示，左对齐 */}
+                {hasImpact && (
+                  <div
+                    className={`mt-4 transition-opacity duration-200 ease-out ${
+                      isActive ? 'opacity-100' : 'opacity-0'
+                    }`}
+                  >
+                    <div className="h-px bg-red-900/30 mb-2" />
+                    <div className="text-[10px] sm:text-xs text-[#b91c1c] uppercase tracking-[0.25em] text-left">
+                      {choice.impactHint.split(/\s*\|\s*/).map((part, i) => (
+                        <span key={i} className="block">{part.trim()}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+
               {disabled && (
-                <div className="mt-2 text-xs text-red-300/90">⚠️ {choice.disabledReason || reason}</div>
+                <div className="mt-2 text-xs text-red-300/90 text-left leading-relaxed whitespace-normal">⚠️ {choice.disabledReason || reason}</div>
               )}
             </button>
           );
         })}
+        </div>
       </div>
     </div>
   );

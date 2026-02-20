@@ -10,14 +10,14 @@ html, body {
   padding: 0;
   width: 100%;
   overflow-x: hidden;
-  background-color: #000000;
+  background-color: #080b08;
 }
 
-/* --- 开场简介 --- */
+/* --- 开场简介（横屏优先） --- */
 .intro-screen {
   min-height: 100vh;
   width: 100%;
-  max-width: 800px;
+  max-width: min(95vw, 1200px);
   margin: 0 auto;
   padding: 40px 24px;
   display: flex;
@@ -84,17 +84,31 @@ body {
   font-family: 'Courier New', Courier, monospace;
 }
 
-/* --- 游戏布局：三段式 Flexbox，顶底固定、中间独立滚动 --- */
+/* --- 游戏布局：横屏优先，主内容限制宽度居中；可纵向滚动保证选项完整显示 --- */
 .game-wrapper {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   width: 100%;
-  max-width: 800px;
+  max-width: min(95vw, 800px);
   margin: 0 auto;
-  overflow: hidden;
-  background-color: #000000;
-  padding: 0 14px 0 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #080b08;
+  padding: 0;
+  box-sizing: border-box;
+  padding-bottom: 2rem;
+}
+
+.game-inner {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   box-sizing: border-box;
 }
 
@@ -204,15 +218,25 @@ body {
   margin: 0;
 }
 
+/* 选择后果：绿色荧光框，终端感；正体 + 行高提升可读性 */
 .consequence-box {
-  margin-bottom: 10px;
-  padding: 6px 8px;
-  background: rgba(40, 40, 40, 0.4);
-  border-left: 3px solid #666;
-  color: #a0a0a0;
-  font-style: italic;
-  font-size: 0.85rem;
-  line-height: 1.35;
+  margin-bottom: 1rem;
+  padding: 12px 16px;
+  background: rgba(57, 255, 20, 0.08);
+  border: 1px solid rgba(57, 255, 20, 0.5);
+  border-left-width: 3px;
+  color: #39ff14;
+  font-style: normal;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  box-shadow:
+    0 0 12px rgba(57, 255, 20, 0.15),
+    inset 0 0 20px rgba(57, 255, 20, 0.04);
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
+}
+.consequence-box .terminal-bracket {
+  color: #5aff2e;
+  text-shadow: 0 0 8px #39ff14;
 }
 
 /* ---------- 赛博风游戏主界面：状态栏 / 剧情区 / 选择卡片 ---------- */
@@ -238,38 +262,82 @@ body {
 }
 .cyber-status-bar {
   -webkit-overflow-scrolling: touch;
+  color: #889988;
+}
+.cyber-status-bar .text-red-500 {
+  opacity: 1;
 }
 .cyber-story-area {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(8, 11, 8, 0.6);
+}
+/* 正文区：柔和灰白，行高与段落间距 */
+.cyber-story-area .cyber-narrative {
+  line-height: 1.75;
+  margin-bottom: 1rem;
+  color: #e2e8f0;
+}
+.cyber-story-area .cyber-narrative:last-of-type {
+  margin-bottom: 0;
+}
+.cyber-story-area .story-title {
+  color: #e2e8f0;
+}
+.cyber-story-area .cyber-story-title {
+  font-size: 1.08rem;
+  font-weight: 600;
 }
 .cyber-story-area::-webkit-scrollbar {
   width: 6px;
 }
 .cyber-story-area::-webkit-scrollbar-track {
-  background: #050505;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background: #080b08;
+  border-left: 1px solid #334433;
 }
 .cyber-story-area::-webkit-scrollbar-thumb {
-  background: rgba(127, 29, 29, 0.4);
+  background: rgba(57, 255, 20, 0.25);
   border-radius: 3px;
 }
 .cyber-story-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(127, 29, 29, 0.6);
+  background: rgba(57, 255, 20, 0.4);
 }
 .cyber-warning-prefix strong {
   font-weight: 700;
   color: #d1d5db;
 }
-/* 玻璃拟态选择卡片：半透明边框与背景，选中态暗红 */
+/* 玻璃拟态选择卡片：深灰绿底、默认沉色；悬停终端绿泛光；保留红色 Logic Anchoring */
+.cyber-choices {
+  background: #080b08;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 .cyber-choice-card {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  position: relative;
+  text-align: left;
+  overflow: visible;
+  min-height: 0; /* allow flex item to size to content when items-start */
 }
+/* 默认：暗灰绿边框与静谧灰绿字已由内联/父级设定 */
+/* 悬停（普通）：终端绿边框 + 微弱绿泛光 */
+.cyber-choice-card--hover {
+  border-color: rgba(57, 255, 20, 0.7);
+  background: rgba(34, 80, 34, 0.2);
+  box-shadow: 0 0 16px rgba(57, 255, 20, 0.12);
+}
+/* 红色 Logic Anchoring 态：保留原样式 */
 .cyber-choice-card--active {
+  border-color: rgba(127, 29, 29, 0.85);
+  background: rgba(127, 29, 29, 0.12);
   box-shadow: 0 0 20px rgba(127, 29, 29, 0.25);
 }
-.cyber-choices {
-  background: #000000;
+.cyber-choice-label {
+  padding-left: 0.25rem;
+}
+.cyber-choice-card--hover .cyber-choice-label,
+.cyber-choice-card--active .cyber-choice-label {
+  padding-left: 1rem;
 }
 
 /* 保留旧类名供其他屏使用 */
@@ -323,10 +391,10 @@ body {
 }
 .disabled-reason { color: #ffcccc; font-size: 0.78rem; margin-top: 4px; display: block; }
 
-/* 终端机大结局 (Terminal Override - Beat 7) — 赛博终端打字感 */
+/* 终端机大结局 (Terminal Override - Beat 7) — 赛博终端打字感，横屏优先 */
 .terminal-override {
   width: 100%;
-  max-width: 800px;
+  max-width: min(95vw, 1200px);
   margin: 0 auto;
   padding: 40px 24px;
   background: #000;
@@ -352,7 +420,7 @@ body {
   left: 0;
   right: 0;
   width: 100%;
-  max-width: 800px;
+  max-width: min(95vw, 1200px);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -373,14 +441,18 @@ body {
   flex-shrink: 0;
 }
 .manual-input-screen .terminal-override-consequence {
-  padding: 8px 0 8px 10px;
-  border-left: 3px solid #555;
-  color: #a0a0a0;
+  padding: 10px 14px;
+  background: rgba(57, 255, 20, 0.08);
+  border: 1px solid rgba(57, 255, 20, 0.5);
+  border-left-width: 3px;
+  color: #39ff14;
   font-style: italic;
   font-size: 0.9rem;
-  line-height: 1.4;
-  margin-bottom: 6px;
+  line-height: 1.45;
+  margin-bottom: 8px;
   flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.15);
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
 }
 .manual-input-screen .terminal-override-prompt {
   text-align: center;
@@ -588,19 +660,27 @@ body {
     0 0 18px rgba(57, 255, 20, 0.5);
 }
 .terminal-outcome-deceased {
-  background: #000;
-  color: #cc2222; /* 默认红色文字 */
+  background: #000 !important; /* 死亡结局不用绿色背景 */
+  color: #cc2222; /* 默认红色文字，不用绿 */
 }
 .terminal-outcome-deceased .terminal-outcome-alert {
   background: radial-gradient(ellipse 100% 100% at 50% 50%, rgba(80, 0, 0, 0.4) 0%, transparent 70%);
   animation: outcome-alert-pulse 1.5s ease-in-out infinite;
 }
-.terminal-outcome-deceased .terminal-outcome-title-deceased {
-  color: #ff3333;
+.terminal-outcome-deceased .terminal-outcome-title-deceased,
+.terminal-outcome-deceased .terminal-outcome-title {
+  color: #ff3333 !important;
   text-shadow: 0 0 20px rgba(255, 50, 50, 0.7);
 }
+.terminal-outcome-deceased .terminal-outcome-subtitle {
+  color: #aa4444 !important;
+}
 .terminal-outcome-deceased .terminal-outcome-message {
-  color: #ff6666; /* LINK DISCONNECTED / 文案整体更偏红 */
+  color: #ff6666;
+}
+.terminal-outcome-deceased .terminal-bracket {
+  color: #ff6666 !important;
+  text-shadow: 0 0 8px rgba(255, 80, 80, 0.6);
 }
 .terminal-outcome-title {
   position: relative;

@@ -48,7 +48,9 @@ VITE_GEMINI_API_KEY=your_actual_api_key_here
 
 
 *(Note: Never commit your `.env` file. Ensure it is listed in your `.gitignore`.)*
-4. **Start the development server:**
+4. **（可选）背景音乐：** 将你的背景音乐文件命名为 `music.mp3` 放入项目根目录下的 `public` 文件夹（即 `public/music.mp3`）。进入游戏并点击开始后会自动循环播放，状态栏可点击 🔊/🔇 静音或取消静音。
+
+5. **Start the development server:**
 ```bash
 npm run dev
 
