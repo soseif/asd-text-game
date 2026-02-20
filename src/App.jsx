@@ -52,11 +52,10 @@ const INTRO_TEXTS = [
   ">> INITIATING TIMELINE RECOVERY: T-MINUS 24 HOURS.",
   "Lynn is trapped in a rigged system. Her manager, Sammie, views her Autism (ASD) not as a neurological difference, but as a \"lazy excuse.\" Every request for reasonable accommodation is weaponized into a lethal Performance Improvement Plan (PIP):\n\n> REQ: Written instructions.      |  PIP LOG: \"Rigid, demands excessive hand-holding.\"\n> REQ: Noise-canceling headphones.|  PIP LOG: \"Hostile demeanor, not a team player.\"\n> REQ: Blocked calendar for focus.|  PIP LOG: \"Time theft, lack of transparency.\"",
   "This job is her only lifeline. Lynn's work visa is tethered to this hostile desk. If the PIP fails, 10 years of building a safe, structured life evaporate into a 60-day deportation countdown. With her homeland offering even less acceptance for neurodivergence, returning means erasure. There is no \"home\" to go back to.",
-  "Surviving this intersection of corporate cruelty and fragile immigrant identity is bleeding her dry. The system is designed to break her.",
-  "",
-  "",
-  ">> The timeline has been rewound. You have exactly 24 hours.",
-  ">> Can you reach out and catch her before she hits the ground?"
+  "Surviving this intersection of corporate cruelty and fragile immigrant identity is bleeding her dry. ",
+  "You are her 'Shadow'—her inner voice and last line of defense. Every choice you make will either drain her remaining energy or buy her another hour. ",
+  ">> The timeline has been rewound. You have exactly 24 hours. Can you save her before the system breaks her?",
+  ">> LINK INITIATED. SHADOW, THE CHOICE IS YOURS."
 ];
 const INTRO_LABELS = [
   null,
@@ -137,9 +136,11 @@ function StartScreen({ onStart }) {
   };
 
   const visibleText = (segIdx) => {
+    const text = INTRO_TEXTS[segIdx];
+    if (text == null) return '';
     if (segIdx > segmentIndex) return null;
-    if (segIdx < segmentIndex) return INTRO_TEXTS[segIdx];
-    return INTRO_TEXTS[segIdx].slice(0, charIndex);
+    if (segIdx < segmentIndex) return text;
+    return text.slice(0, charIndex);
   };
   const showSegment8 = showFinalLine;
 
