@@ -3,7 +3,7 @@ export const storyBeats = [
     "id": "beat_1_the_delay",
     "timeLabel": "07:30 AM",
     "title": "The Station Void",
-    "narrativeText": "The subway train sits motionless at the station. The air is a sickening mix of cheap perfume, sweat, and mechanical grease—a sensory assault that makes your stomach churn. The doors remain open as the automated voice mechanically repeats: 'We are held at the station due to signal issues ahead.' Sammie's '8:00 AM sharp' mandate—a rule weaponized exclusively against you—rings like a death knell in your racing brain. You take a deep breath, stepping back out to beg a station attendant for a handwritten proof of delay, but he waves you off with an annoyed scowl. The countdown is closing in. Your body begins to betrayed you with involuntary tremors (stimming).",
+    "narrativeText": "The subway train sits motionless at the station. The air is a sickening mix of cheap perfume, sweat, and mechanical grease—a sensory assault that makes your stomach churn. The doors remain open as the automated voice mechanically repeats: 'We are held at the station due to signal issues ahead.' Sammie's '8:00 AM sharp' mandate—a rule weaponized exclusively against you—rings like a death knell in your racing brain. You take a deep breath, stepping back out to beg a station attendant for a handwritten proof of delay, but he waves you off with an annoyed scowl. The countdown is closing in. Your body begins to betray you with involuntary tremors (stimming).",
     "choices": [
       {
         "id": "1A",
@@ -86,7 +86,7 @@ export const storyBeats = [
         "id": "3B",
         "actionText": "[Vulnerability Gamble] Privately message Conrad for help, saying you can't handle this environment.",
         "impactHint": "🔋 Recover slight energy | 👤 Extremely high risk",
-        "consequenceText": "Conrad replies with a smiley face emoji. But a few minutes later, Sammiedenly says passive-aggressively: 'Looks like someone on our team would rather chat on their phone than talk to the colleagues sitting right in front of them.' Your cry for help just became her new ammunition.",
+        "consequenceText": "Conrad replies with a smiley face emoji. But a few minutes later, Sammie says passive-aggressively: 'Looks like someone on our team would rather chat on their phone than talk to the colleagues sitting right in front of them.' Your cry for help just became her new ammunition.",
         "statsImpact": { "energy": 10, "managerPressure": 15 },
         "requirements": { "maxSensory": 90 },
         "disabledReason": "Sensory Overload: You are so dizzy that the words on your phone screen are a blur."
@@ -146,7 +146,7 @@ export const storyBeats = [
     "id": "beat_5_impossible_deadline",
     "timeLabel": "04:00 PM",
     "title": "The Impossible Deadline (Death Row)",
-    "narrativeText": "The suffocating atmosphere of HR talk hasn't even dissipated before Sammie's profile picture flashes again. 'Lynn, PM wants a quick sync. Put together a presentation on the core algorithm refactoring plan we discussed. Present it to the stakeholders at 5 PM. Numbers are preferred.' This is an execution. Trapped with zero time to process data, it's a setup designed entirely to humiliate you in a public meeting. 'Numbers are preferred'—without them, the PM's attendance is pointless, and you will be the sinner wasted everyone's time. Extreme anxiety makes your brain's executive function flash red, but your survival instinct (hyper-focus) is violently forced online.",
+    "narrativeText": "The suffocating atmosphere of HR talk hasn't even dissipated before Sammie's profile picture flashes again. 'Lynn, PM wants a quick sync. Put together a presentation on the core algorithm refactoring plan we discussed. Present it to the stakeholders at 5 PM. Numbers are preferred.' This is an execution. Trapped with zero time to process data, it's a setup designed entirely to humiliate you in a public meeting. 'Numbers are preferred'—without them, the PM's attendance is pointless, and you will be the sinner wasting everyone's time. Extreme anxiety makes your brain's executive function flash red, but your survival instinct (hyper-focus) is violently forced online.",
     "choices": [
       {
         "id": "5A",
@@ -205,7 +205,7 @@ export const storyBeats = [
         "id": "6C",
         "actionText": "[Dissociation] Keep your head down, let the malicious complaints pierce through your body, and inhale the thought 'I don't deserve to exist' deep into your lungs.",
         "impactHint": "🔊 Fall into absolute darkness | 👤 Internalize the abuser's logic",
-        "consequenceText": "You don't fight back. You even begin to agree with them. Maybe Sammie is right. Maybe your clumsy communication and hypersensitivity to the envment are themselves cancers to this highly efficient world. You don't deserve Conrad's help. You are no longer a person; you are just a 'burden'.",
+        "consequenceText": "You don't fight back. You even begin to agree with them. Maybe Sammie is right. Maybe your clumsy communication and hypersensitivity to the environment are themselves cancers to this highly efficient world. You don't deserve Conrad's help. You are no longer a person; you are just a 'burden'.",
         "statsImpact": { "energy": -10, "sensoryOverload": 20, "managerPressure": 10 },
         "requirements": null,
         "disabledReason": null
@@ -221,7 +221,7 @@ export const storyBeats = [
       "if_5A": "Even though you pushed through hell to deliver a near-perfect presentation at 5 PM, Sammie's email claims you 'did not meet expectations', lacked executive presence, were too defensive under feedback, and leaned on a colleague for core data processing.",
       "if_5B_or_5C": "The 5 PM checkpoint passed in a blur of static. Sammie's email, timestamped 5:01 PM, coldly asserts that you failed to deliver, showed zero accountability, and withdrew from the meeting in a way that 'confirms your inability to perform basic job functions or follow corporate standards.'"
     },
-    "bridgeText": "In the dark, you swear you can smell Sammie's suffocating perfume. Your eyes drift to the calendar on the wall—you are on an work visa. Once the PIP fails and you are terminated, you have exactly 60 days to pack up your entire life and leave. The bridge behind you is burned; ahead lies only a cliff.",
+    "bridgeText": "In the dark, you swear you can smell Sammie's suffocating perfume. Your eyes drift to the calendar on the wall—you are on a work visa. Once the PIP fails and you are terminated, you have exactly 60 days to pack up your entire life and leave. The bridge behind you is burned; ahead lies only a cliff.",
     "choices": [
       {
         "id": "7A",
@@ -238,9 +238,9 @@ export const storyBeats = [
         "impactHint": "Absolute abandonment",
         "consequenceText": "The numbers of the ticket prices blur into smeared blocks of color. Accompanied by deafening tinnitus, your brain cuts off its final blood supply. The whole world begins to collapse...",
         "statsImpact": { "energy": -99, "sensoryOverload": 99, "managerPressure": 99 },
-        "requirements": { "maxSensory": 60 }, 
+        "requirements": { "maxSensory": 60 },
         "disabledReason": "System Crash Warning: Sensory overload at maximum capacity. Visual processing module failed. Execution failed."
-},
+ },
       {
         "id": "7C",
         "actionText": "[System Failure] Close your eyes. In this cramped, dark room, abandon all masking. Wait for the final free fall.",
@@ -278,8 +278,6 @@ export const storyBeats = [
       }
     ]
   }
-  
- ];
- 
+  ];
  
  

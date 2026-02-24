@@ -1,7 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { storyBeats } from './data/storyBeats.js';
 import { diagnosticReport } from './data/diagnosticReport.js';
+import { introTexts as INTRO_TEXTS, introLabels as INTRO_LABELS } from './data/intro.js';
+import {
+  terminalLog as INITIAL_TERMINAL_LOG,
+  waitingMessages as WAITING_MESSAGES,
+  systemWordsFailed as TERMINAL_SYSTEM_WORDS_FAILED,
+  placeholderMessage as TERMINAL_PLACEHOLDER,
+  transmitMessage as TERMINAL_TRANSMIT,
+} from './data/terminal.js';
 import { LYNN_SYSTEM_PROMPT } from './llm/lynnPrompt.js';
+import {
+  useLocale,
+  getLocalizedStoryBeats,
+  getLocalizedDiagnosticReport,
+  getIntroText,
+  getIntroLabel,
+  getSpamMessageText,
+  getWaitingMessage,
+  t,
+} from './i18n/index.jsx';
+import { zh } from './locales/zh.js';
 import './App.css';
 
 /** 将文本中的 [xxx] 段渲染为荧光绿，用于终端赛博感 */
@@ -46,31 +65,9 @@ const SPAM_MESSAGES = [
 /** 致命弹窗出现后，延迟多久显示最后一句任务线 */
 const FINAL_LINE_DELAY_MS = 500;
 
-/** ~55ms per char ≈ comfortable reading speed. Each segment types this text (label shown at start for blocks). */
-const INTRO_TEXTS = [
-  ">> SYSTEM_ALERT: FATAL UNRAVELLING DETECTED.",
-  ">> INITIATING TIMELINE RECOVERY: T-MINUS 24 HOURS.",
-  "Lynn is trapped in a rigged system. Her manager, Sammie, views her Autism (ASD) not as a neurological difference, but as a \"lazy excuse.\" Every request for reasonable accommodation is weaponized into a lethal Performance Improvement Plan (PIP):\n\n> REQ: Written instructions.      |  PIP LOG: \"Rigid, demands excessive hand-holding.\"\n> REQ: Noise-canceling headphones.|  PIP LOG: \"Hostile demeanor, not a team player.\"\n> REQ: Blocked calendar for focus.|  PIP LOG: \"Time theft, lack of transparency.\"",
-  "This job is her only lifeline. Lynn's work visa is tethered to this hostile desk. If the PIP fails, 10 years of building a safe, structured life evaporate into a 60-day deportation countdown. With her homeland offering even less acceptance for neurodivergence, returning means erasure. There is no \"home\" to go back to.",
-  "Surviving this intersection of corporate cruelty and fragile immigrant identity is bleeding her dry. ",
-  "You are her 'Shadow'—her inner voice and last line of defense. Every choice you make will either drain her remaining energy or buy her another hour. ",
-  ">> The timeline has been rewound. You have exactly 24 hours. Can you save her before the system breaks her?",
-  ">> LINK INITIATED. SHADOW, THE CHOICE IS YOURS."
-];
-const INTRO_LABELS = [
-  null,
-  null,
-  "[ PERFORMANCE_STATUS: CRITICAL ]",
-  "[ SYSTEMIC_THREAT: EXILE_IMMINENT ]",
-  "[ NEURAL_CAPACITY: DEPLETED ]",
-  null,
-  null,
-  null,
-  null
-];
 const TYPEWRITER_MS_PER_CHAR = 52;
 
-function StartScreen({ onStart }) {
+function StartScreen({ onStart, locale, setLocale }) {
   const [hasEnteredIntro, setHasEnteredIntro] = useState(false);
   /** 0..8: current segment. 7 = typewriter stops; 8 = shown by popup-phase timer. */
   const [segmentIndex, setSegmentIndex] = useState(0);
@@ -82,26 +79,29 @@ function StartScreen({ onStart }) {
   const poppedIdsRef = useRef(new Set());
   const finalLineTimerRef = useRef(null);
 
+  const introTexts = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => getIntroText(i, locale) ?? INTRO_TEXTS[i]);
+  const introLabels = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => getIntroLabel(i, locale) ?? INTRO_LABELS[i]);
+
   // Typewriter: one character every TYPEWRITER_MS_PER_CHAR; advance segment when current text done; stop at end of segment 7
   useEffect(() => {
     if (!hasEnteredIntro || segmentIndex >= 8) return;
-    const text = INTRO_TEXTS[segmentIndex];
+    const text = introTexts[segmentIndex];
     if (charIndex >= text.length) {
       if (segmentIndex >= 7) return;
       setSegmentIndex((s) => s + 1);
       setCharIndex(0);
       return;
     }
-    const t = setTimeout(() => setCharIndex((c) => c + 1), TYPEWRITER_MS_PER_CHAR);
-    return () => clearTimeout(t);
-  }, [hasEnteredIntro, segmentIndex, charIndex]);
+    const tm = setTimeout(() => setCharIndex((c) => c + 1), TYPEWRITER_MS_PER_CHAR);
+    return () => clearTimeout(tm);
+  }, [hasEnteredIntro, segmentIndex, charIndex, introTexts]);
 
-  // 根据当前已打出的全文检查关键词，按顺序触发弹窗
+  // 根据当前已打出的全文检查关键词，按顺序触发弹窗（仅英文）
   const getFullVisibleIntroText = () => {
     let s = '';
     for (let i = 0; i <= segmentIndex; i++) {
-      if (i < segmentIndex) s += INTRO_TEXTS[i];
-      else s += INTRO_TEXTS[i].slice(0, charIndex);
+      if (i < segmentIndex) s += introTexts[i];
+      else s += introTexts[i].slice(0, charIndex);
       if (i < segmentIndex) s += '\n';
     }
     return s;
@@ -136,7 +136,7 @@ function StartScreen({ onStart }) {
   };
 
   const visibleText = (segIdx) => {
-    const text = INTRO_TEXTS[segIdx];
+    const text = introTexts[segIdx];
     if (text == null) return '';
     if (segIdx > segmentIndex) return null;
     if (segIdx < segmentIndex) return text;
@@ -148,6 +148,26 @@ function StartScreen({ onStart }) {
   if (!hasEnteredIntro) {
     return (
       <div className="intro-minimal">
+        <button
+          type="button"
+          className="lang-switcher"
+          onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            padding: '4px 10px',
+            background: 'transparent',
+            border: '1px solid #39ff14',
+            color: '#39ff14',
+            fontFamily: 'monospace',
+            fontSize: 12,
+            cursor: 'pointer',
+            zIndex: 10,
+          }}
+        >
+          {locale === 'zh' ? '中文 ✓ | English' : '中文 | English ✓'}
+        </button>
         {/* 电路板背景层 */}
         <div className="intro-circuit-bg" aria-hidden />
         {/* 上层线缆 */}
@@ -165,11 +185,11 @@ function StartScreen({ onStart }) {
         {/* 主内容 */}
         <div className="intro-content-wrap">
           <div className="title-hero title-hero--center">
-            <h1 className="glitch-title glitch-title--intro">24 Hours of Sodom</h1>
-            <h2 className="glitch-subtitle glitch-subtitle--intro">Too Loud a Solitude</h2>
+            <h1 className="glitch-title glitch-title--intro">{t('title', locale, '24 Hours of Sodom')}</h1>
+            <h2 className="glitch-subtitle glitch-subtitle--intro">{t('subtitle', locale, 'Too Loud a Solitude')}</h2>
           </div>
           <button className="enter-game-btn" onClick={() => setHasEnteredIntro(true)}>
-            &gt; Enter game<span className="enter-game-cursor">_</span>
+            &gt; {t('enterGame', locale, 'Enter game')}<span className="enter-game-cursor">_</span>
           </button>
         </div>
       </div>
@@ -177,54 +197,54 @@ function StartScreen({ onStart }) {
   }
 
   // 第二屏：打字机逐字打出，NEURAL_CAPACITY 后不规则弹窗，最后一句在最后一条弹窗之后
-  const isTyping = (idx) => segmentIndex === idx && charIndex < INTRO_TEXTS[idx].length;
+  const isTyping = (idx) => segmentIndex === idx && charIndex < introTexts[idx].length;
   const cursor = <span className="typewriter-cursor">|</span>;
   const renderSegment = (idx, asBlock = false, className = '') => {
-    const t = visibleText(idx);
-    if (t == null) return null;
-    const label = INTRO_LABELS[idx];
+    const txt = visibleText(idx);
+    if (txt == null) return null;
+    const label = introLabels[idx];
     const showCursor = isTyping(idx);
     if (asBlock && label) {
       return (
         <div className="data-block">
           <span className="block-label">{label}</span>
-          <p>{t}{showCursor && cursor}</p>
+          <p>{txt}{showCursor && cursor}</p>
         </div>
       );
     }
-    if (asBlock) return <p className={className}>{t}{showCursor && cursor}</p>;
-    return <span className={className}>{t}{showCursor && cursor}</span>;
+    if (asBlock) return <p className={className}>{txt}{showCursor && cursor}</p>;
+    return <span className={className}>{txt}{showCursor && cursor}</span>;
   };
 
   return (
     <div className="diagnostic-report relative-container">
       <div className="title-hero">
-        <h1 className="glitch-title">24 Hours of Sodom</h1>
-        <h2 className="glitch-subtitle">Too Loud a Solitude</h2>
+        <h1 className="glitch-title">{t('title', locale, '24 Hours of Sodom')}</h1>
+        <h2 className="glitch-subtitle">{t('subtitle', locale, 'Too Loud a Solitude')}</h2>
       </div>
       <div className="report-header">
-        {segmentIndex >= 0 && (segmentIndex > 0 ? <span className="critical-warning">{INTRO_TEXTS[0]}</span> : renderSegment(0, false, 'critical-warning'))}
-        {segmentIndex >= 1 && (segmentIndex > 1 ? <span className="critical-warning">{INTRO_TEXTS[1]}</span> : renderSegment(1, false, 'critical-warning'))}
+        {segmentIndex >= 0 && (segmentIndex > 0 ? <span className="critical-warning">{introTexts[0]}</span> : renderSegment(0, false, 'critical-warning'))}
+        {segmentIndex >= 1 && (segmentIndex > 1 ? <span className="critical-warning">{introTexts[1]}</span> : renderSegment(1, false, 'critical-warning'))}
       </div>
 
       <div className="report-body">
         {[2, 3, 4].map((idx) => {
           if (segmentIndex < idx) return null;
-          if (segmentIndex > idx) return <div key={idx} className="data-block"><span className="block-label">{INTRO_LABELS[idx]}</span><p>{INTRO_TEXTS[idx]}</p></div>;
+          if (segmentIndex > idx) return <div key={idx} className="data-block"><span className="block-label">{introLabels[idx]}</span><p>{introTexts[idx]}</p></div>;
           return <React.Fragment key={idx}>{renderSegment(idx, true)}</React.Fragment>;
         })}
-        {segmentIndex > 5 && <p className="report-standalone">{INTRO_TEXTS[5]}</p>}
+        {segmentIndex > 5 && <p className="report-standalone">{introTexts[5]}</p>}
         {segmentIndex === 5 && renderSegment(5, true, 'report-standalone')}
-        {segmentIndex > 6 && <p className="report-standalone">{INTRO_TEXTS[6]}</p>}
+        {segmentIndex > 6 && <p className="report-standalone">{introTexts[6]}</p>}
         {segmentIndex === 6 && renderSegment(6, true, 'report-standalone')}
       </div>
 
       <div className="report-footer">
-        {segmentIndex > 7 && <p className="mission-objective">{INTRO_TEXTS[7]}</p>}
+        {segmentIndex > 7 && <p className="mission-objective">{introTexts[7]}</p>}
         {segmentIndex === 7 && <p className="mission-objective">{visibleText(7)}{isTyping(7) && cursor}</p>}
-        {showSegment8 && <p className="mission-objective">{INTRO_TEXTS[8]}</p>}
+        {showSegment8 && <p className="mission-objective">{introTexts[8]}</p>}
         <button className="start-btn" onClick={onStart}>
-          &gt; INITIATE_LINK<span className="start-cursor">_</span>
+          &gt; {t('initiateLink', locale, 'INITIATE_LINK')}<span className="start-cursor">_</span>
         </button>
       </div>
 
@@ -249,7 +269,7 @@ function StartScreen({ onStart }) {
                 </button>
               </div>
               <div className={`popup-body ${m.isFatal ? 'blinking-text' : ''}`}>
-                {m.sender.includes('Sammie') ? <><strong>{m.sender}:</strong> &quot;{m.text}&quot;</> : m.text}
+                {m.sender.includes('Sammie') ? <><strong>{m.sender}:</strong> &quot;{getSpamMessageText(m, locale)}&quot;</> : getSpamMessageText(m, locale)}
               </div>
             </div>
           );
@@ -260,7 +280,9 @@ function StartScreen({ onStart }) {
 }
 
 export default function GameUI() {
+  const { locale, setLocale } = useLocale();
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? "";
+  const localizedStoryBeats = getLocalizedStoryBeats(storyBeats, locale);
   // --- 核心游戏状态 ---
   const [isGameStarted, setIsGameStarted] = useState(false);
   const [hasSeenIntro, setHasSeenIntro] = useState(false);
@@ -272,11 +294,14 @@ export default function GameUI() {
   // Terminal Override (Beat 7 结局)
   const [playerMessage, setPlayerMessage] = useState("");
   const [isTransmitting, setIsTransmitting] = useState(false);
-  const [terminalLog, setTerminalLog] = useState([
-    "[ERROR: PRE-DEFINED EMPATHY PROTOCOLS FAILED]",
-    "[SUBJECT REJECTED NEUROTYPICAL RESPONSES]",
-    "[INITIATING MANUAL DIRECT LINK...]"
-  ]);
+  const [terminalLog, setTerminalLog] = useState(() => {
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('cyber-hell-locale') === 'zh' && zh?.ui?.terminalLog) {
+        return [...zh.ui.terminalLog];
+      }
+    } catch {}
+    return [...INITIAL_TERMINAL_LOG];
+  });
   const [llmResponse, setLlmResponse] = useState("");
   const [finalOutcome, setFinalOutcome] = useState(null); // null | 'survived' | 'deceased'
   const [transmitError, setTransmitError] = useState("");
@@ -299,16 +324,14 @@ export default function GameUI() {
   const VERDICT_TO_OUTCOME_DELAY_MS = 3000;
   const WAITING_MESSAGE_INTERVAL_MS = 2800;
 
-  const WAITING_MESSAGES = [
-    "Decrypting emotional syntax...",
-    "Bypassing neural firewalls...",
-    "Parsing subtext. Stand by.",
-    "Signal strength: fluctuating.",
-    "Translating intent into frequency...",
-    "Lynn's receiver is online. Routing...",
-    "Empathy protocol handshake in progress...",
-    "Noise floor dropping. Channel clearing.",
-  ];
+  // 进入终端界面时，若仍是初始三条日志，按当前语言显示
+  useEffect(() => {
+    if (!isSystemFailed || terminalLog.length !== 3) return;
+    const isInitialEn = terminalLog[0] === INITIAL_TERMINAL_LOG[0];
+    const wantZh = locale === 'zh' && zh?.ui?.terminalLog;
+    if (wantZh && isInitialEn) setTerminalLog([...zh.ui.terminalLog]);
+    else if (!wantZh && !isInitialEn) setTerminalLog([...INITIAL_TERMINAL_LOG]);
+  }, [isSystemFailed, locale]);
 
   // 分步打字机与阶段推进
   useEffect(() => {
@@ -424,6 +447,8 @@ export default function GameUI() {
           setIsGameStarted(true);
           setHasSeenIntro(true);
         }}
+        locale={locale}
+        setLocale={setLocale}
       />
     );
   }
@@ -473,9 +498,9 @@ export default function GameUI() {
   // 检查选项是否可用
   const checkIsDisabled = (requirements) => {
     if (!requirements) return { disabled: false, reason: "" };
-    if (requirements.minEnergy !== undefined && stats.energy < requirements.minEnergy) return { disabled: true, reason: "电量不足" };
-    if (requirements.maxSensory !== undefined && stats.sensory > requirements.maxSensory) return { disabled: true, reason: "感官过载" };
-    if (requirements.maxPressure !== undefined && stats.pressure > requirements.maxPressure) return { disabled: true, reason: "压力过大" };
+    if (requirements.minEnergy !== undefined && stats.energy < requirements.minEnergy) return { disabled: true, reason: t('lowEnergy', locale, 'Insufficient Energy') };
+    if (requirements.maxSensory !== undefined && stats.sensory > requirements.maxSensory) return { disabled: true, reason: t('sensoryOverload', locale, 'Sensory Overload') };
+    if (requirements.maxPressure !== undefined && stats.pressure > requirements.maxPressure) return { disabled: true, reason: t('highPressure', locale, 'Pressure too high') };
     return { disabled: false, reason: "" };
   };
 
@@ -483,11 +508,12 @@ export default function GameUI() {
   const handleChoiceClick = (choice) => {
     const currentBeatId = storyBeats[currentBeatIndex]?.id || "";
 
-    // 1. 更新数值
+    // 1. 更新数值（beat 8 等选项可能无 statsImpact，用可选链兜底）
+    const impact = choice.statsImpact;
     setStats(prev => ({
-      energy: clamp(prev.energy + (choice.statsImpact.energy || 0)),
-      sensory: clamp(prev.sensory + (choice.statsImpact.sensoryOverload || 0)),
-      pressure: clamp(prev.pressure + (choice.statsImpact.managerPressure || 0))
+      energy: clamp(prev.energy + (impact?.energy ?? 0)),
+      sensory: clamp(prev.sensory + (impact?.sensoryOverload ?? 0)),
+      pressure: clamp(prev.pressure + (impact?.managerPressure ?? 0))
     }));
 
     // 2. 显示后果
@@ -502,17 +528,22 @@ export default function GameUI() {
     }
 
     // 3. 检查是否触发大结局 (System Failure / 终局干预)
-    const isSystemFailureChoice = choice.actionText.includes("System Failure"); // 7C 直接坠入系统故障
-    const isInterventionBeat = currentBeatId === "beat_8_intervention";        // 阳台干预后进入终端接管
+    const isOnBeat7 = currentBeatId === "beat_7_final_echo";
+    // beat7 无论选 7A / 7B / 7C 都先进入 beat8 阳台，再在 beat8 选完才进 terminal
+    if (isOnBeat7) {
+      setCurrentBeatIndex(prev => prev + 1);
+      return;
+    }
+
+    const isSystemFailureChoice = choice.id === "7C" || (choice.actionText && choice.actionText.includes("System Failure"));
+    const isOnBeat8 = currentBeatIndex === storyBeats.length - 1;
+    const isInterventionBeat = isOnBeat8 && currentBeatId === "beat_8_intervention";
 
     if (isSystemFailureChoice || isInterventionBeat) {
-      // 给出一点时间显示 consequence，再切到终端接管
       setTimeout(() => setIsSystemFailed(true), 2000);
     } else if (currentBeatIndex < storyBeats.length - 1) {
-      // 还有后续剧情，就推进到下一 BEAT（包括 7A / 7B -> 8 阳台）
       setCurrentBeatIndex(prev => prev + 1);
     } else {
-      // 理论上的最后一个 BEAT 兜底：稍微停顿后进入终端接管
       setTimeout(() => setIsSystemFailed(true), 1500);
     }
   };
@@ -525,12 +556,6 @@ export default function GameUI() {
     return JSON.parse(s);
   };
 
-  const INITIAL_TERMINAL_LOG = [
-    "[ERROR: PRE-DEFINED EMPATHY PROTOCOLS FAILED]",
-    "[SUBJECT REJECTED NEUROTYPICAL RESPONSES]",
-    "[INITIATING MANUAL DIRECT LINK...]"
-  ];
-
   const resetGame = () => {
     setIsGameStarted(false);
     setHasSeenIntro(false);
@@ -540,7 +565,7 @@ export default function GameUI() {
     setIsSystemFailed(false);
     setChoiceHistory({});
     setPlayerMessage("");
-    setTerminalLog([...INITIAL_TERMINAL_LOG]);
+    setTerminalLog(locale === 'zh' && zh?.ui?.terminalLog ? [...zh.ui.terminalLog] : [...INITIAL_TERMINAL_LOG]);
     setLlmResponse("");
     setFinalOutcome(null);
     setTransmitError("");
@@ -561,7 +586,10 @@ export default function GameUI() {
       const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
       const userInput = playerMessage.trim();
       console.log("User Input:", userInput);
-      const userPrompt = LYNN_SYSTEM_PROMPT + "\n\nUser Message: " + userInput;
+      const languageInstruction = locale === 'zh'
+        ? "\n\n[CRITICAL: You MUST respond entirely in Simplified Chinese. Both \"empathy_analysis\" and \"terminal_output\" in your JSON must be written in Chinese.]"
+        : "\n\n[CRITICAL: You MUST respond entirely in English. Both \"empathy_analysis\" and \"terminal_output\" in your JSON must be written in English.]";
+      const userPrompt = LYNN_SYSTEM_PROMPT + languageInstruction + "\n\nUser Message: " + userInput;
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: userPrompt,
@@ -702,11 +730,11 @@ export default function GameUI() {
           </div>
         )}
         <p className="terminal-override-prompt">
-          The system's words couldn't reach Lynn. Now, use your own.
+          {t('systemWordsFailed', locale, TERMINAL_SYSTEM_WORDS_FAILED)}
         </p>
         <textarea
           className="terminal-override-input"
-          placeholder="Type your message to Lynn..."
+          placeholder={t('placeholderMessage', locale, TERMINAL_PLACEHOLDER)}
           value={playerMessage}
           onChange={(e) => setPlayerMessage(e.target.value)}
           disabled={isTransmitting}
@@ -738,7 +766,7 @@ export default function GameUI() {
               onClick={handleTransmit}
               disabled={isTransmitting || !playerMessage.trim()}
             >
-              {isTransmitting ? WAITING_MESSAGES[waitingMessageIndex] : "> TRANSMIT_MESSAGE_"}
+              {isTransmitting ? (getWaitingMessage(waitingMessageIndex, locale) ?? WAITING_MESSAGES[waitingMessageIndex]) : t('transmitMessage', locale, TERMINAL_TRANSMIT)}
             </button>
           </div>
         )}
@@ -749,9 +777,18 @@ export default function GameUI() {
     );
   }
 
-  const currentBeat = storyBeats[currentBeatIndex];
+  const currentBeat = localizedStoryBeats[currentBeatIndex];
+  const choices = currentBeat?.choices ?? [];
 
   // --- 渲染常规游戏界面（赛博风：深黑 + 暗红强调 + 交互式选择卡片）---
+  if (!currentBeat) {
+    return (
+      <div className="game-wrapper min-h-screen flex items-center justify-center bg-[#080b08] text-[#889988] font-mono">
+        <p>[BEAT_INDEX_OUT_OF_RANGE]</p>
+      </div>
+    );
+  }
+
   return (
     <div className="game-wrapper min-h-screen h-screen w-full mx-auto flex flex-col bg-[#080b08] font-mono text-[#889988] overflow-hidden">
       {/* 顶部状态栏：时间、电量、Sensory、Pressure、Pending Revocation；琥珀色点缀关键指标 */}
@@ -802,15 +839,25 @@ export default function GameUI() {
           else if (firstBeatChoiceId === "1C") conditionalText = currentBeat.conditionalNarrative.if_1C;
           return conditionalText ? <p className="cyber-narrative text-sm leading-relaxed text-[#e2e8f0] mt-2">&quot;{conditionalText}&quot;</p> : null;
         })()}
+        {currentBeat.id === "beat_7_final_echo" && currentBeat.conditionalNarrative && (() => {
+          const beat5ChoiceId = choiceHistory["beat_5_impossible_deadline"];
+          let conditionalText = "";
+          if (beat5ChoiceId === "5A") conditionalText = currentBeat.conditionalNarrative.if_5A;
+          else if (beat5ChoiceId === "5B" || beat5ChoiceId === "5C") conditionalText = currentBeat.conditionalNarrative.if_5B_or_5C;
+          return conditionalText ? <p className="cyber-narrative text-sm leading-relaxed text-[#e2e8f0] mt-2">&quot;{conditionalText}&quot;</p> : null;
+        })()}
+        {currentBeat.bridgeText && (
+          <p className="cyber-narrative text-sm leading-relaxed text-[#e2e8f0] mt-2">&quot;{currentBeat.bridgeText}&quot;</p>
+        )}
         </div>
 
         {/* 底部：选项卡片默认沉色；悬停终端绿/琥珀泛光；保留红色 Logic Anchoring 态 */}
         <div className="cyber-choices flex-shrink-0 flex flex-row items-start gap-4 p-4 border-t border-[#334433] bg-[#080b08] overflow-x-auto overflow-y-visible">
-        {currentBeat.choices.map((choice) => {
+        {choices.map((choice) => {
           const { disabled, reason } = checkIsDisabled(choice.requirements);
           const isActive = hoveredChoiceId === choice.id;
           const hasImpact = Boolean(choice.impactHint);
-          const isLogicAnchoring = choice.actionText && choice.actionText.includes('Logic Anchoring');
+          const isLogicAnchoring = ['1B', '2B', '4B', '5B', '6B', '7A', '8B'].includes(choice.id);
           return (
             <button
               key={choice.id}

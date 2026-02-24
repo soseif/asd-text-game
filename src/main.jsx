@@ -40,12 +40,15 @@ class ErrorBoundary extends React.Component {
 async function init() {
   try {
     const { default: App } = await import('./App.jsx')
+    const { LocaleProvider } = await import('./i18n/index.jsx')
     createRoot(document.getElementById('root')).render(
       <StrictMode>
         <ErrorBoundary>
-          <App />
+          <LocaleProvider>
+            <App />
+          </LocaleProvider>
         </ErrorBoundary>
-      </StrictMode>,
+      </StrictMode>
     )
   } catch (err) {
     showLoadError(err)
