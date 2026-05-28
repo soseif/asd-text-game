@@ -20,6 +20,10 @@
   padding-left: 24px;
   padding-right: 24px;
   overflow: visible;
+  border-radius: 6px !important;
+  background: transparent;
+  border-color: #334433;
+  box-shadow: none;
 }
 
 /* ========== Start Screen：底层剧情梗概 + 表层连环弹窗，纯黑白终端 ========== */
@@ -35,6 +39,8 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  letter-spacing: 0.05em;
+  line-height: 1.8;
 }
 
 .diagnostic-report.relative-container {
@@ -137,7 +143,7 @@
 }
 
 .blinking-text {
-  animation: popup-blink 1s step-end infinite;
+  animation: none;
 }
 
 @keyframes popup-blink {

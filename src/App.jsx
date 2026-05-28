@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { storyBeats } from './data/storyBeats.js';
 import { diagnosticReport } from './data/diagnosticReport.js';
 import { introTexts as INTRO_TEXTS, introLabels as INTRO_LABELS } from './data/intro.js';
@@ -36,6 +36,32 @@ function highlightBrackets(text) {
   );
 }
 
+/** 终端诊断风格：自动高亮 [系统标签] 和 (ASD 术语) */
+function highlightTerminalText(text) {
+  if (!text) return null;
+  const parts = text.split(/(\[[^\]]*\]|\([^)]*\))/g);
+  return parts.map((part, i) => {
+    if (/^\[.*\]$/.test(part)) {
+      return (
+        <span
+          key={i}
+          className="terminal-warning-tag inline-block bg-red-900/50 text-red-400 px-1.5 py-0.5 rounded-sm font-bold tracking-widest border border-red-700/50 align-baseline"
+        >
+          {part}
+        </span>
+      );
+    }
+    if (/^\(.*\)$/.test(part)) {
+      return (
+        <span key={i} className="terminal-inline-note text-[#a8d6ea] font-bold bg-[#1a3344]/35 px-1 align-baseline">
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
 /** 弹窗在打字机打到以下关键词时依次触发（按顺序） */
 const KEYWORD_TRIGGERS = [
   { keyword: 'Sammie', id: 'msg1' },
@@ -67,12 +93,12 @@ const FINAL_LINE_DELAY_MS = 500;
 
 const TYPEWRITER_MS_PER_CHAR = 52;
 
-function StartScreen({ onStart, locale, setLocale }) {
-  const [hasEnteredIntro, setHasEnteredIntro] = useState(false);
+function StartScreen({ onStart, locale, canQuickSkip }) {
+  const [hasEnteredIntro] = useState(true);
   /** 0..8: current segment. 7 = typewriter stops; 8 = shown by popup-phase timer. */
   const [segmentIndex, setSegmentIndex] = useState(0);
   /** How many chars visible in current segment. */
-  const [charIndex, setCharIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(1);
   /** Set true when final-line timer fires; shows segment 8. */
   const [showFinalLine, setShowFinalLine] = useState(false);
   const [visibleOrder, setVisibleOrder] = useState(() => []);
@@ -81,6 +107,22 @@ function StartScreen({ onStart, locale, setLocale }) {
 
   const introTexts = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => getIntroText(i, locale) ?? INTRO_TEXTS[i]);
   const introLabels = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => getIntroLabel(i, locale) ?? INTRO_LABELS[i]);
+  const lastTypewriterSegment = Math.min(7, introTexts.length - 1);
+
+  const handleSkipIntro = useCallback(() => {
+    if (!canQuickSkip) return;
+    if (lastTypewriterSegment < 0) return;
+    const allTriggerIds = KEYWORD_TRIGGERS.map(({ id }) => id);
+    if (finalLineTimerRef.current) {
+      clearTimeout(finalLineTimerRef.current);
+      finalLineTimerRef.current = null;
+    }
+    poppedIdsRef.current = new Set(allTriggerIds);
+    setVisibleOrder([...allTriggerIds].reverse());
+    setSegmentIndex(lastTypewriterSegment);
+    setCharIndex((introTexts[lastTypewriterSegment] ?? '').length);
+    setShowFinalLine(true);
+  }, [canQuickSkip, introTexts, lastTypewriterSegment]);
 
   // Typewriter: one character every TYPEWRITER_MS_PER_CHAR; advance segment when current text done; stop at end of segment 7
   useEffect(() => {
@@ -130,6 +172,20 @@ function StartScreen({ onStart, locale, setLocale }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!canQuickSkip) return;
+    const onMouseDown = () => handleSkipIntro();
+    const onKeyDown = (e) => {
+      if (e.key === ' ' || e.key === 'Enter') handleSkipIntro();
+    };
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [canQuickSkip, handleSkipIntro]);
+
   const dismiss = (id, e) => {
     e.stopPropagation();
     setVisibleOrder((prev) => prev.filter((x) => x !== id));
@@ -143,58 +199,6 @@ function StartScreen({ onStart, locale, setLocale }) {
     return text.slice(0, charIndex);
   };
   const showSegment8 = showFinalLine;
-
-  // 第一屏：赛博感 intro（电路板 + 霓虹标题 + 全息城市场景 + HUD）
-  if (!hasEnteredIntro) {
-    return (
-      <div className="intro-minimal">
-        <button
-          type="button"
-          className="lang-switcher"
-          onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
-          style={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            padding: '4px 10px',
-            background: 'transparent',
-            border: '1px solid #39ff14',
-            color: '#39ff14',
-            fontFamily: 'monospace',
-            fontSize: 12,
-            cursor: 'pointer',
-            zIndex: 10,
-          }}
-        >
-          {locale === 'zh' ? '中文 ✓ | English' : '中文 | English ✓'}
-        </button>
-        {/* 电路板背景层 */}
-        <div className="intro-circuit-bg" aria-hidden />
-        {/* 上层线缆 */}
-        <div className="intro-wires" aria-hidden />
-        {/* 全息城市场景 */}
-        <div className="intro-city intro-city--tl" aria-hidden />
-        <div className="intro-city intro-city--tr" aria-hidden />
-        <div className="intro-city intro-city--bl" aria-hidden />
-        <div className="intro-city intro-city--center" aria-hidden />
-        {/* HUD 角标 */}
-        <div className="intro-hud intro-hud--tl" aria-hidden />
-        <div className="intro-hud intro-hud--tr" aria-hidden />
-        <div className="intro-hud intro-hud--br" aria-hidden />
-        <div className="intro-hud intro-hud--bl" aria-hidden />
-        {/* 主内容 */}
-        <div className="intro-content-wrap">
-          <div className="title-hero title-hero--center">
-            <h1 className="glitch-title glitch-title--intro">{t('title', locale, '24 Hours of Sodom')}</h1>
-            <h2 className="glitch-subtitle glitch-subtitle--intro">{t('subtitle', locale, 'Too Loud a Solitude')}</h2>
-          </div>
-          <button className="enter-game-btn" onClick={() => setHasEnteredIntro(true)}>
-            &gt; {t('enterGame', locale, 'Enter game')}<span className="enter-game-cursor">_</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   // 第二屏：打字机逐字打出，NEURAL_CAPACITY 后不规则弹窗，最后一句在最后一条弹窗之后
   const isTyping = (idx) => segmentIndex === idx && charIndex < introTexts[idx].length;
@@ -217,7 +221,7 @@ function StartScreen({ onStart, locale, setLocale }) {
   };
 
   return (
-    <div className="diagnostic-report relative-container">
+    <div className="diagnostic-report relative-container" onMouseDown={handleSkipIntro}>
       <div className="title-hero">
         <h1 className="glitch-title">{t('title', locale, '24 Hours of Sodom')}</h1>
         <h2 className="glitch-subtitle">{t('subtitle', locale, 'Too Loud a Solitude')}</h2>
@@ -243,6 +247,16 @@ function StartScreen({ onStart, locale, setLocale }) {
         {segmentIndex > 7 && <p className="mission-objective">{introTexts[7]}</p>}
         {segmentIndex === 7 && <p className="mission-objective">{visibleText(7)}{isTyping(7) && cursor}</p>}
         {showSegment8 && <p className="mission-objective">{introTexts[8]}</p>}
+        {canQuickSkip && segmentIndex < lastTypewriterSegment && (
+          <p
+            className="mission-objective"
+            style={{ marginTop: '1.25rem', textAlign: 'center' }}
+          >
+            {locale === 'zh'
+              ? '[FAST FORWARD ENABLED] 点击屏幕加载全部日志。'
+              : '[FAST FORWARD ENABLED] Click screen to reveal all logs.'}
+          </p>
+        )}
         <button className="start-btn" onClick={onStart}>
           &gt; {t('initiateLink', locale, 'INITIATE_LINK')}<span className="start-cursor">_</span>
         </button>
@@ -281,6 +295,13 @@ function StartScreen({ onStart, locale, setLocale }) {
 
 export default function GameUI() {
   const { locale, setLocale } = useLocale();
+  const [canQuickSkipIntro, setCanQuickSkipIntro] = useState(() => {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem('cyber-hell-has-played') === '1';
+    } catch {
+      return false;
+    }
+  });
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY ?? "";
   const localizedStoryBeats = getLocalizedStoryBeats(storyBeats, locale);
   // --- 核心游戏状态 ---
@@ -289,7 +310,14 @@ export default function GameUI() {
   const [stats, setStats] = useState({ energy: 100, sensory: 0, pressure: 0 });
   const [currentBeatIndex, setCurrentBeatIndex] = useState(0);
   const [lastConsequence, setLastConsequence] = useState("");
+  const [resolutionPendingAdvance, setResolutionPendingAdvance] = useState(null); // { nextBeat, terminalDelay } | null
   const [isSystemFailed, setIsSystemFailed] = useState(false);
+  const [narrativeCharIndex, setNarrativeCharIndex] = useState(0);
+  const [conditionalNarrativeCharIndex, setConditionalNarrativeCharIndex] = useState(0);
+  const [bridgeNarrativeCharIndex, setBridgeNarrativeCharIndex] = useState(0);
+  const narrativeTypewriterRef = useRef(null);
+  const conditionalTypewriterRef = useRef(null);
+  const bridgeTypewriterRef = useRef(null);
   const [choiceHistory, setChoiceHistory] = useState({}); // { [beatId]: choiceId }
   // Terminal Override (Beat 7 结局)
   const [playerMessage, setPlayerMessage] = useState("");
@@ -314,15 +342,143 @@ export default function GameUI() {
   const [showReportButton, setShowReportButton] = useState(false);
   const [showStatsScreen, setShowStatsScreen] = useState(false);
   const [hoveredChoiceId, setHoveredChoiceId] = useState(null); // 底部选项卡片 hover/active 高亮
+  const [isInlineInterventionInput, setIsInlineInterventionInput] = useState(false);
   const pauseTimeoutRef = useRef(null);
   const typewriterIntervalRef = useRef(null);
   const waitingIntervalRef = useRef(null);
   const outcomeDelayRef = useRef(null);
   const reportButtonDelayRef = useRef(null);
+  const interventionOutcomeDelayRef = useRef(null);
   const TYPEWRITER_MS = 28;
   const PAUSE_AFTER_ANALYSIS_MS = 3000;
   const VERDICT_TO_OUTCOME_DELAY_MS = 3000;
   const WAITING_MESSAGE_INTERVAL_MS = 2800;
+
+  const NARRATIVE_TYPEWRITER_MS = 20;
+
+  const getConditionalNarrativeText = (beat) => {
+    if (!beat?.conditionalNarrative) return "";
+    if (beat.id === "beat_4_hr_ambush") {
+      const firstBeatChoiceId = choiceHistory["beat_1_the_delay"];
+      if (firstBeatChoiceId === "1A") return beat.conditionalNarrative.if_1A ?? "";
+      if (firstBeatChoiceId === "1B") return beat.conditionalNarrative.if_1B ?? "";
+      if (firstBeatChoiceId === "1C") return beat.conditionalNarrative.if_1C ?? "";
+      return "";
+    }
+    if (beat.id === "beat_7_final_echo") {
+      const beat5ChoiceId = choiceHistory["beat_5_impossible_deadline"];
+      if (beat5ChoiceId === "5A") return beat.conditionalNarrative.if_5A ?? "";
+      if (beat5ChoiceId === "5B" || beat5ChoiceId === "5C") return beat.conditionalNarrative.if_5B_or_5C ?? "";
+      return "";
+    }
+    return "";
+  };
+
+  // 进入新 beat 时重置 narrative 打字机；有 consequence 时不打字（已展示过）
+  useEffect(() => {
+    if (!lastConsequence) setNarrativeCharIndex(0);
+  }, [currentBeatIndex, lastConsequence]);
+
+  useEffect(() => {
+    setConditionalNarrativeCharIndex(0);
+    setBridgeNarrativeCharIndex(0);
+    setIsInlineInterventionInput(false);
+  }, [currentBeatIndex, locale]);
+
+  // Narrative 打字机（有 consequence 时不运行）
+  useEffect(() => {
+    if (lastConsequence) return;
+    const beat = localizedStoryBeats[currentBeatIndex];
+    const fullText = beat?.narrativeText ?? "";
+    if (narrativeCharIndex >= fullText.length) return;
+    narrativeTypewriterRef.current = setTimeout(
+      () => setNarrativeCharIndex((c) => c + 1),
+      NARRATIVE_TYPEWRITER_MS
+    );
+    return () => {
+      if (narrativeTypewriterRef.current) clearTimeout(narrativeTypewriterRef.current);
+    };
+  }, [currentBeatIndex, narrativeCharIndex, lastConsequence, localizedStoryBeats]);
+
+  useEffect(() => {
+    if (lastConsequence) return;
+    const beat = localizedStoryBeats[currentBeatIndex];
+    const fullNarrative = beat?.narrativeText ?? "";
+    const conditionalText = getConditionalNarrativeText(beat);
+    if (!conditionalText) return;
+    if (narrativeCharIndex < fullNarrative.length) return;
+    if (conditionalNarrativeCharIndex >= conditionalText.length) return;
+    conditionalTypewriterRef.current = setTimeout(
+      () => setConditionalNarrativeCharIndex((c) => c + 1),
+      NARRATIVE_TYPEWRITER_MS
+    );
+    return () => {
+      if (conditionalTypewriterRef.current) clearTimeout(conditionalTypewriterRef.current);
+    };
+  }, [currentBeatIndex, narrativeCharIndex, conditionalNarrativeCharIndex, lastConsequence, localizedStoryBeats, choiceHistory]);
+
+  useEffect(() => {
+    if (lastConsequence) return;
+    const beat = localizedStoryBeats[currentBeatIndex];
+    const fullNarrative = beat?.narrativeText ?? "";
+    const conditionalText = getConditionalNarrativeText(beat);
+    const bridgeText = beat?.bridgeText ?? "";
+    if (!bridgeText) return;
+    if (narrativeCharIndex < fullNarrative.length) return;
+    if (conditionalText && conditionalNarrativeCharIndex < conditionalText.length) return;
+    if (bridgeNarrativeCharIndex >= bridgeText.length) return;
+    bridgeTypewriterRef.current = setTimeout(
+      () => setBridgeNarrativeCharIndex((c) => c + 1),
+      NARRATIVE_TYPEWRITER_MS
+    );
+    return () => {
+      if (bridgeTypewriterRef.current) clearTimeout(bridgeTypewriterRef.current);
+    };
+  }, [
+    currentBeatIndex,
+    narrativeCharIndex,
+    conditionalNarrativeCharIndex,
+    bridgeNarrativeCharIndex,
+    lastConsequence,
+    localizedStoryBeats,
+    choiceHistory,
+  ]);
+
+  const narrativeSkipRef = useRef(null);
+  narrativeSkipRef.current = () => {
+    const beat = localizedStoryBeats[currentBeatIndex];
+    const fullText = beat?.narrativeText ?? "";
+    if (narrativeCharIndex < fullText.length) {
+      setNarrativeCharIndex(fullText.length);
+      return;
+    }
+    const conditionalText = getConditionalNarrativeText(beat);
+    if (conditionalText && conditionalNarrativeCharIndex < conditionalText.length) {
+      setConditionalNarrativeCharIndex(conditionalText.length);
+      return;
+    }
+    const bridgeText = beat?.bridgeText ?? "";
+    if (bridgeText && bridgeNarrativeCharIndex < bridgeText.length) {
+      setBridgeNarrativeCharIndex(bridgeText.length);
+    }
+  };
+
+  useEffect(() => {
+    if (lastConsequence || !isGameStarted || !hasSeenIntro || isSystemFailed) return;
+    const onKeyDown = (e) => {
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        narrativeSkipRef.current?.();
+      }
+    };
+    const onMouseDown = () => narrativeSkipRef.current?.();
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("mousedown", onMouseDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("mousedown", onMouseDown);
+    };
+  }, [lastConsequence, isGameStarted, hasSeenIntro, isSystemFailed]);
 
   // 进入终端界面时，若仍是初始三条日志，按当前语言显示
   useEffect(() => {
@@ -420,6 +576,21 @@ export default function GameUI() {
     };
   }, [finalOutcome]);
 
+  useEffect(() => {
+    if (finalOutcome === 'deceased' || finalOutcome === 'survived') {
+      setIsSystemFailed(true);
+    }
+  }, [finalOutcome]);
+
+  useEffect(() => {
+    return () => {
+      if (interventionOutcomeDelayRef.current) {
+        clearTimeout(interventionOutcomeDelayRef.current);
+        interventionOutcomeDelayRef.current = null;
+      }
+    };
+  }, []);
+
   // 等待 API 时轮播提示语
   useEffect(() => {
     if (!isTransmitting) {
@@ -444,11 +615,17 @@ export default function GameUI() {
     return (
       <StartScreen
         onStart={() => {
+          try {
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('cyber-hell-has-played', '1');
+            }
+          } catch {}
+          setCanQuickSkipIntro(true);
           setIsGameStarted(true);
           setHasSeenIntro(true);
         }}
         locale={locale}
-        setLocale={setLocale}
+        canQuickSkip={canQuickSkipIntro}
       />
     );
   }
@@ -504,11 +681,23 @@ export default function GameUI() {
     return { disabled: false, reason: "" };
   };
 
+  const handleResolutionContinue = () => {
+    if (!resolutionPendingAdvance) return;
+    const { nextBeat, terminalDelay } = resolutionPendingAdvance;
+    setLastConsequence("");
+    setResolutionPendingAdvance(null);
+    if (nextBeat) {
+      setCurrentBeatIndex(nextBeat);
+    } else {
+      setTimeout(() => setIsSystemFailed(true), terminalDelay ?? 1500);
+    }
+  };
+
   // 处理选项点击
   const handleChoiceClick = (choice) => {
     const currentBeatId = storyBeats[currentBeatIndex]?.id || "";
 
-    // 1. 更新数值（beat 8 等选项可能无 statsImpact，用可选链兜底）
+    // 1. 更新数值
     const impact = choice.statsImpact;
     setStats(prev => ({
       energy: clamp(prev.energy + (impact?.energy ?? 0)),
@@ -516,10 +705,10 @@ export default function GameUI() {
       pressure: clamp(prev.pressure + (impact?.managerPressure ?? 0))
     }));
 
-    // 2. 显示后果
+    // 2. 显示后果（在底部替代选项）
     setLastConsequence(choice.consequenceText || "");
 
-    // 2.5 记录当前剧情节点的选择，用于后续 conditionalNarrative
+    // 2.5 记录选择
     if (currentBeatId) {
       setChoiceHistory(prev => ({
         ...prev,
@@ -527,24 +716,50 @@ export default function GameUI() {
       }));
     }
 
-    // 3. 检查是否触发大结局 (System Failure / 终局干预)
-    const isOnBeat7 = currentBeatId === "beat_7_final_echo";
-    // beat7 无论选 7A / 7B / 7C 都先进入 beat8 阳台，再在 beat8 选完才进 terminal
-    if (isOnBeat7) {
-      setCurrentBeatIndex(prev => prev + 1);
-      return;
+    if (currentBeatId === "beat_8_intervention") {
+      if (choice.id === "8A" || choice.id === "8B") {
+        // 先展示 Lynn 的回应，再自动进入结局，避免直接切屏打断情绪。
+        setResolutionPendingAdvance(null);
+        setIsInlineInterventionInput(false);
+        if (interventionOutcomeDelayRef.current) clearTimeout(interventionOutcomeDelayRef.current);
+        interventionOutcomeDelayRef.current = setTimeout(() => {
+          setLastConsequence("");
+          setFinalOutcome("deceased");
+          setIsSystemFailed(true);
+        }, 2200);
+        return;
+      }
+      if (choice.id === "8C") {
+        // 第三个选项回到原始全屏手动输入界面，给足输入空间。
+        setLastConsequence("");
+        setResolutionPendingAdvance(null);
+        setIsInlineInterventionInput(false);
+        setFinalOutcome(null);
+        setIsSystemFailed(true);
+        setPlayerMessage("");
+        setTransmitError("");
+        setLlmResult(null);
+        setDisplayPhase("idle");
+        setAnalysisVisibleLength(0);
+        setVerdictVisibleLength(0);
+        return;
+      }
     }
 
+    // 3. 暂不推进，等用户点击 Force reboot and proceed 后再执行
+    const isOnBeat7 = currentBeatId === "beat_7_final_echo";
     const isSystemFailureChoice = choice.id === "7C" || (choice.actionText && choice.actionText.includes("System Failure"));
     const isOnBeat8 = currentBeatIndex === storyBeats.length - 1;
     const isInterventionBeat = isOnBeat8 && currentBeatId === "beat_8_intervention";
 
-    if (isSystemFailureChoice || isInterventionBeat) {
-      setTimeout(() => setIsSystemFailed(true), 2000);
+    if (isOnBeat7) {
+      setResolutionPendingAdvance({ nextBeat: currentBeatIndex + 1 });
+    } else if (isSystemFailureChoice || isInterventionBeat) {
+      setResolutionPendingAdvance({ terminalDelay: 2000 });
     } else if (currentBeatIndex < storyBeats.length - 1) {
-      setCurrentBeatIndex(prev => prev + 1);
+      setResolutionPendingAdvance({ nextBeat: currentBeatIndex + 1 });
     } else {
-      setTimeout(() => setIsSystemFailed(true), 1500);
+      setResolutionPendingAdvance({ terminalDelay: 1500 });
     }
   };
 
@@ -557,11 +772,18 @@ export default function GameUI() {
   };
 
   const resetGame = () => {
+    if (interventionOutcomeDelayRef.current) {
+      clearTimeout(interventionOutcomeDelayRef.current);
+      interventionOutcomeDelayRef.current = null;
+    }
     setIsGameStarted(false);
     setHasSeenIntro(false);
     setStats({ energy: 100, sensory: 0, pressure: 0 });
     setCurrentBeatIndex(0);
     setLastConsequence("");
+    setConditionalNarrativeCharIndex(0);
+    setBridgeNarrativeCharIndex(0);
+    setResolutionPendingAdvance(null);
     setIsSystemFailed(false);
     setChoiceHistory({});
     setPlayerMessage("");
@@ -575,6 +797,7 @@ export default function GameUI() {
     setVerdictVisibleLength(0);
     setShowReportButton(false);
     setShowStatsScreen(false);
+    setIsInlineInterventionInput(false);
   };
 
   const handleTransmit = async () => {
@@ -779,6 +1002,93 @@ export default function GameUI() {
 
   const currentBeat = localizedStoryBeats[currentBeatIndex];
   const choices = currentBeat?.choices ?? [];
+  const isInterventionBeat = currentBeat?.id === "beat_8_intervention";
+  const interventionPresetChoices = isInterventionBeat
+    ? choices.filter((choice) => choice.id === "8A" || choice.id === "8B")
+    : [];
+  const currentConditionalNarrativeText = getConditionalNarrativeText(currentBeat);
+  const hasConditionalNarrative = Boolean(currentConditionalNarrativeText);
+  const isPrimaryNarrativeDone = narrativeCharIndex >= (currentBeat?.narrativeText?.length ?? 0);
+  const showConditionalNarrative = hasConditionalNarrative && isPrimaryNarrativeDone;
+  const displayedConditionalNarrative = showConditionalNarrative
+    ? currentConditionalNarrativeText.slice(
+        0,
+        lastConsequence ? currentConditionalNarrativeText.length : conditionalNarrativeCharIndex
+      )
+    : "";
+  const isConditionalNarrativeTyping = showConditionalNarrative
+    && !lastConsequence
+    && conditionalNarrativeCharIndex < currentConditionalNarrativeText.length;
+  const isAnyNarrativeTyping = !isPrimaryNarrativeDone || isConditionalNarrativeTyping;
+  const hasBridgeNarrative = Boolean(currentBeat?.bridgeText);
+  const isBridgeNarrativeReady = !hasConditionalNarrative || conditionalNarrativeCharIndex >= currentConditionalNarrativeText.length;
+  const showBridgeNarrative = hasBridgeNarrative && isPrimaryNarrativeDone && isBridgeNarrativeReady;
+  const displayedBridgeNarrative = showBridgeNarrative
+    ? (currentBeat.bridgeText ?? '').slice(0, lastConsequence ? (currentBeat.bridgeText ?? '').length : bridgeNarrativeCharIndex)
+    : "";
+  const isBridgeNarrativeTyping = showBridgeNarrative
+    && !lastConsequence
+    && bridgeNarrativeCharIndex < (currentBeat.bridgeText?.length ?? 0);
+  const isAnyNarrativeStillTyping = isAnyNarrativeTyping || isBridgeNarrativeTyping;
+
+  const renderChoiceCard = (choice) => {
+    const { disabled, reason } = checkIsDisabled(choice.requirements);
+    const isActive = hoveredChoiceId === choice.id;
+    const hasImpact = Boolean(choice.impactHint);
+    const isLogicAnchoring = ['1B', '2B', '4B', '5B', '6B', '7A', '8B'].includes(choice.id);
+    return (
+      <button
+        key={choice.id}
+        className={`cyber-choice-card rounded border py-4 text-left font-mono text-sm transition-all duration-300 ease-out overflow-visible ${
+          disabled
+            ? 'opacity-60 cursor-not-allowed border-[#334433] bg-white/[0.03] text-[#889988]/60'
+            : isActive && isLogicAnchoring
+              ? 'cyber-choice-card--active border-[#7f1d1d] bg-[#7f1d1d]/30 text-[#f9fafb]'
+              : isActive
+                ? 'cyber-choice-card--hover border-[#39ff14]/70 bg-green-900/20 text-[#c8ffb4]'
+                : 'border-[#334433] bg-white/[0.04] text-[#889988]'
+        }`}
+        disabled={disabled}
+        onClick={() => !disabled && handleChoiceClick(choice)}
+        onMouseEnter={() => setHoveredChoiceId(choice.id)}
+        onMouseLeave={() => setHoveredChoiceId(null)}
+      >
+        <div className="flex h-full flex-col justify-between">
+          <div className="text-left">
+            <div
+              className={`leading-relaxed ${
+                disabled ? 'line-through' : ''
+              } ${
+                isActive && isLogicAnchoring ? 'text-base font-semibold text-[#f9fafb]' :
+                isActive ? 'text-base font-semibold text-[#c8ffb4]' : 'text-sm text-[#889988]'
+              }`}
+            >
+              {choice.actionText}
+            </div>
+          </div>
+
+          {hasImpact && (
+            <div
+              className={`mt-4 transition-opacity duration-200 ease-out ${
+                isActive ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <div className="h-px bg-red-900/30 mb-2" />
+              <div className="text-[10px] sm:text-xs text-[#b91c1c] uppercase tracking-[0.25em] text-left">
+                {choice.impactHint.split(/\s*\|\s*/).map((part, i) => (
+                  <span key={i} className="block">{part.trim()}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {disabled && (
+          <div className="mt-2 text-xs text-red-300/90 text-left leading-relaxed whitespace-normal">⚠️ {choice.disabledReason || reason}</div>
+        )}
+      </button>
+    );
+  };
 
   // --- 渲染常规游戏界面（赛博风：深黑 + 暗红强调 + 交互式选择卡片）---
   if (!currentBeat) {
@@ -822,97 +1132,125 @@ export default function GameUI() {
       <div className="flex-1 flex flex-col min-h-0 bg-[#080b08]">
         {/* 中间剧情区：占满剩余空间并在内部滚动 */}
         <div className="cyber-story-area flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 border-l border-[#334433] mx-2 my-2 bg-[#080b08]/60">
-        {lastConsequence && (
-          <div className="consequence-box mb-3 text-[#e2e8f0]">
-            &gt; {lastConsequence}
-          </div>
-        )}
         <h2 className="story-title border-b border-[#334433] pb-1 mb-2 text-base font-semibold text-[#e2e8f0]">[{currentBeat.timeLabel}] {currentBeat.title}</h2>
-        <p className="cyber-narrative text-sm leading-relaxed text-[#e2e8f0]">
-          &quot;{currentBeat.narrativeText}&quot;
+        <p className="cyber-narrative text-sm leading-loose text-[#e2e8f0] mb-4 relative">
+          &quot;{highlightTerminalText(currentBeat.narrativeText.slice(0, lastConsequence ? currentBeat.narrativeText.length : narrativeCharIndex))}&quot;
+          {!lastConsequence && narrativeCharIndex < (currentBeat.narrativeText?.length ?? 0) && (
+            <>
+              <span>|</span>
+              <span className="absolute bottom-0 right-0 text-[10px] text-[#5b7892]">
+                {locale === "zh" ? "按 Space 跳过 ▼" : "Press Space to skip ▼"}
+              </span>
+            </>
+          )}
         </p>
-        {currentBeat.id === "beat_4_hr_ambush" && currentBeat.conditionalNarrative && (() => {
-          const firstBeatChoiceId = choiceHistory["beat_1_the_delay"];
-          let conditionalText = "";
-          if (firstBeatChoiceId === "1A") conditionalText = currentBeat.conditionalNarrative.if_1A;
-          else if (firstBeatChoiceId === "1B") conditionalText = currentBeat.conditionalNarrative.if_1B;
-          else if (firstBeatChoiceId === "1C") conditionalText = currentBeat.conditionalNarrative.if_1C;
-          return conditionalText ? <p className="cyber-narrative text-sm leading-relaxed text-[#e2e8f0] mt-2">&quot;{conditionalText}&quot;</p> : null;
-        })()}
-        {currentBeat.id === "beat_7_final_echo" && currentBeat.conditionalNarrative && (() => {
-          const beat5ChoiceId = choiceHistory["beat_5_impossible_deadline"];
-          let conditionalText = "";
-          if (beat5ChoiceId === "5A") conditionalText = currentBeat.conditionalNarrative.if_5A;
-          else if (beat5ChoiceId === "5B" || beat5ChoiceId === "5C") conditionalText = currentBeat.conditionalNarrative.if_5B_or_5C;
-          return conditionalText ? <p className="cyber-narrative text-sm leading-relaxed text-[#e2e8f0] mt-2">&quot;{conditionalText}&quot;</p> : null;
-        })()}
-        {currentBeat.bridgeText && (
-          <p className="cyber-narrative text-sm leading-relaxed text-[#e2e8f0] mt-2">&quot;{currentBeat.bridgeText}&quot;</p>
+        {showConditionalNarrative && (
+          <p className="cyber-narrative text-sm leading-loose text-[#e2e8f0] mb-4 relative">
+            &quot;{highlightTerminalText(displayedConditionalNarrative)}&quot;
+            {isConditionalNarrativeTyping && <span>|</span>}
+          </p>
+        )}
+        {showBridgeNarrative && (
+          <p className="cyber-narrative text-sm leading-loose text-[#e2e8f0] mb-4 relative">
+            &quot;{highlightTerminalText(displayedBridgeNarrative)}&quot;
+            {isBridgeNarrativeTyping && <span>|</span>}
+          </p>
         )}
         </div>
 
-        {/* 底部：选项卡片默认沉色；悬停终端绿/琥珀泛光；保留红色 Logic Anchoring 态 */}
-        <div className="cyber-choices flex-shrink-0 flex flex-row items-start gap-4 p-4 border-t border-[#334433] bg-[#080b08] overflow-x-auto overflow-y-visible">
-        {choices.map((choice) => {
-          const { disabled, reason } = checkIsDisabled(choice.requirements);
-          const isActive = hoveredChoiceId === choice.id;
-          const hasImpact = Boolean(choice.impactHint);
-          const isLogicAnchoring = ['1B', '2B', '4B', '5B', '6B', '7A', '8B'].includes(choice.id);
-          return (
+        {/* 底部：有 consequence 时 SYS.LOG 替代选项；narrative 未打完时隐藏选项；否则显示选项卡片 */}
+        <div className={`cyber-choices flex-shrink-0 min-h-64 p-4 border-t border-[#334433] bg-[#080b08] overflow-x-auto overflow-y-visible ${lastConsequence ? 'flex flex-col gap-4' : 'flex flex-row items-start gap-4'}`}>
+        {lastConsequence ? (
+          <>
+            <div className="border-l-4 border-green-500 bg-gradient-to-r from-green-950/40 to-transparent p-4 pl-5 rounded-r">
+              <div className="text-green-600 text-xs mb-2 font-bold tracking-widest uppercase">
+                &gt;&gt; SYS.LOG // NEURAL_FEEDBACK_ANALYSIS
+              </div>
+              <div className="text-green-400/95 text-sm leading-loose">
+                {highlightTerminalText(lastConsequence)}
+              </div>
+            </div>
             <button
-              key={choice.id}
-              className={`cyber-choice-card rounded border py-4 text-left font-mono text-sm transition-all duration-300 ease-out overflow-visible ${
-                disabled
-                  ? 'opacity-60 cursor-not-allowed border-[#334433] bg-white/[0.03] text-[#889988]/60'
-                  : isActive && isLogicAnchoring
-                    ? 'cyber-choice-card--active border-[#7f1d1d] bg-[#7f1d1d]/30 text-[#f9fafb]'
-                    : isActive
-                      ? 'cyber-choice-card--hover border-[#39ff14]/70 bg-green-900/20 text-[#c8ffb4]'
-                      : 'border-[#334433] bg-white/[0.04] text-[#889988]'
-              }`}
-              disabled={disabled}
-              onClick={() => !disabled && handleChoiceClick(choice)}
-              onMouseEnter={() => setHoveredChoiceId(choice.id)}
-              onMouseLeave={() => setHoveredChoiceId(null)}
+              type="button"
+              className="self-start mt-2 text-gray-500 text-sm hover:text-gray-400 font-mono focus:outline-none bg-transparent border-none cursor-pointer"
+              onClick={handleResolutionContinue}
             >
-              <div className="flex h-full flex-col justify-between">
-                {/* 上方：主要操作文案，左对齐 */}
-                <div className="text-left">
-                  <div
-                    className={`leading-relaxed ${
-                      disabled ? 'line-through' : ''
-                    } ${
-                      isActive && isLogicAnchoring ? 'text-base font-semibold text-[#f9fafb]' :
-                      isActive ? 'text-base font-semibold text-[#c8ffb4]' : 'text-sm text-[#889988]'
-                    }`}
-                  >
-                    {choice.actionText}
-                  </div>
-                </div>
-
-                {/* 下方：Impact 区域，仅在 hover/active 时淡入显示，左对齐 */}
-                {hasImpact && (
-                  <div
-                    className={`mt-4 transition-opacity duration-200 ease-out ${
-                      isActive ? 'opacity-100' : 'opacity-0'
-                    }`}
-                  >
-                    <div className="h-px bg-red-900/30 mb-2" />
-                    <div className="text-[10px] sm:text-xs text-[#b91c1c] uppercase tracking-[0.25em] text-left">
-                      {choice.impactHint.split(/\s*\|\s*/).map((part, i) => (
-                        <span key={i} className="block">{part.trim()}</span>
-                      ))}
+              &gt; <span className="text-gray-500">{locale === "zh" ? "强制重启并继续" : "Force reboot and proceed"}</span>{' '}
+              <span className="text-green-500 animate-pulse">_</span>
+            </button>
+          </>
+        ) : isAnyNarrativeStillTyping ? null : isInterventionBeat ? (
+          <>
+            {interventionPresetChoices.map((choice) => renderChoiceCard(choice))}
+            {!isInlineInterventionInput ? (
+              <button
+                type="button"
+                className="cyber-choice-card rounded border py-4 text-left font-mono text-sm transition-all duration-300 ease-out overflow-visible border-[#334433] bg-white/[0.04] text-[#889988]"
+                onClick={() => handleChoiceClick({ id: "8C", statsImpact: null })}
+                onMouseEnter={() => setHoveredChoiceId("8C")}
+                onMouseLeave={() => setHoveredChoiceId(null)}
+              >
+                <div className="flex h-full flex-col justify-between">
+                  <div className="text-left">
+                    <div
+                      className={`leading-relaxed ${
+                        hoveredChoiceId === "8C" ? 'text-base font-semibold text-[#c8ffb4]' : 'text-sm text-[#889988]'
+                      }`}
+                    >
+                      [Manual Direct Link] Write your own words to Lynn.
                     </div>
                   </div>
+                </div>
+              </button>
+            ) : (
+              <div className="cyber-choice-card rounded border py-4 text-left font-mono text-sm border-[#334433] bg-white/[0.04] text-[#889988]">
+                <p className="terminal-override-prompt">
+                  {t('systemWordsFailed', locale, TERMINAL_SYSTEM_WORDS_FAILED)}
+                </p>
+                <textarea
+                  className="terminal-override-input"
+                  placeholder={t('placeholderMessage', locale, TERMINAL_PLACEHOLDER)}
+                  value={playerMessage}
+                  onChange={(e) => setPlayerMessage(e.target.value)}
+                  disabled={isTransmitting}
+                  rows={3}
+                />
+                {llmResult && (
+                  <div className="terminal-verdict-block">
+                    {(displayPhase === 'typing_analysis' || displayPhase === 'pause' || displayPhase === 'typing_verdict' || displayPhase === 'done') && (
+                      <div className="analysis-log">
+                        {highlightBrackets((llmResult.empathy_analysis ?? '').slice(0, analysisVisibleLength))}
+                        {(displayPhase === 'typing_analysis' && analysisVisibleLength < (llmResult.empathy_analysis ?? '').length) && <span className="typewriter-cursor">|</span>}
+                      </div>
+                    )}
+                    {(displayPhase === 'typing_verdict' || displayPhase === 'done') && (
+                      <div
+                        className={`verdict-log verdict-log--${llmResult.final_status === 'deceased' ? 'deceased' : 'survived'}`}
+                      >
+                        {highlightBrackets((llmResult.terminal_output ?? '').slice(0, verdictVisibleLength))}
+                        {(displayPhase === 'typing_verdict' && verdictVisibleLength < (llmResult.terminal_output ?? '').length) && <span className="typewriter-cursor">|</span>}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!llmResult && (
+                  <div className="terminal-override-btn-wrap">
+                    <button
+                      className="terminal-override-btn"
+                      onClick={handleTransmit}
+                      disabled={isTransmitting || !playerMessage.trim()}
+                    >
+                      {isTransmitting ? (getWaitingMessage(waitingMessageIndex, locale) ?? WAITING_MESSAGES[waitingMessageIndex]) : t('transmitMessage', locale, TERMINAL_TRANSMIT)}
+                    </button>
+                  </div>
+                )}
+                {transmitError && (
+                  <div className="terminal-override-error-msg">{transmitError}</div>
                 )}
               </div>
-
-              {disabled && (
-                <div className="mt-2 text-xs text-red-300/90 text-left leading-relaxed whitespace-normal">⚠️ {choice.disabledReason || reason}</div>
-              )}
-            </button>
-          );
-        })}
+            )}
+          </>
+        ) : choices.map((choice) => renderChoiceCard(choice))}
         </div>
       </div>
     </div>

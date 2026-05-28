@@ -32,6 +32,44 @@ export const storyBeats = [
       }
     ]
   },
+ 
+ {
+     "id": "beat_1_5_the_reboot",
+     "timeLabel": "08:20 AM",
+     "title": "The 300-Second Sanctuary (System Reboot)",
+    "narrativeText": "You drop your bag at your desk and immediately flee to the restroom stall. For your autistic brain, predictability isn't just a preference—it's survival. The unexpected subway delay didn't just make you late; it introduced a chaotic, unplannable variable that violently shattered your mental script for the morning. When reality abruptly deviates from your internal algorithm, your nervous system lacks the ability to auto-correct. The UI is flashing a critical red warning: [SYSTEM ERROR: UNEXPECTED VARIABLE] followed by [SENSORY OVERLOAD IMMINENT]. But right now, in this enclosed cubicle, the rules are absolute. Sammie isn't here. You have 5 minutes to run a manual diagnostic and soothe your blazing nervous system before logging into the matrix.",
+     "choices": [
+       {
+         "id": "1.5A",
+         "actionText": "[Parasympathetic Override] The 4-7-8 Breathing Method. Close your eyes. Inhale for 4 seconds, hold the breath for 7 seconds, and exhale completely for 8 seconds. Repeat the cycle.",
+         "impactHint": "🌟 Restore energy | 🔊 Suppress sensory noise",
+         "consequenceText": "1...2...3...4. For an ASD brain on the verge of meltdown, the 'Fight or Flight' sympathetic nervous system gets violently locked in the ON position. The 4-7-8 method isn't just 'relaxing'; it's a physiological hack. By making your exhales twice as long as your inhales, you manually force your vagus nerve to activate the parasympathetic (Rest and Digest) system. Your heart rate physically has no choice but to drop. The rushing static in your ears fades into a rhythmic hum, and the red [PANIC] alerts on your internal UI cool to a stable blue. You successfully recompile your baseline.",
+         "statsImpact": { "energy": 25, "sensoryOverload": -30, "managerPressure": 0 },
+         "requirements": null,
+         "disabledReason": null
+       },
+       {
+         "id": "1.5B",
+         "actionText": "[Proprioceptive Grounding] The Wall Push (Stimming). Place both hands flat against the cold tiles. Push with all your body weight to give your joints the deep pressure input they are screaming for.",
+         "impactHint": "🌟 Regain physical boundaries | 🔋 Minor energy recovery",
+         "consequenceText": "When an autistic person experiences severe sensory overload, the brain often loses track of where the body ends and the chaotic world begins (Dissociation). By pushing against an immovable wall, you are engaging 'Proprioceptive Stimming'. The intense, predictable pressure on your joints and muscles sends concrete data back to your brain, essentially re-mapping your physical boundaries. The paralyzing, floaty feeling is shoved out of your system. Your muscles tremble, but you stand up straight—you are anchored back inside your own skin.",
+         "statsImpact": { "energy": 15, "sensoryOverload": -25, "managerPressure": 0 },
+         "requirements": null,
+         "disabledReason": null
+       },
+       {
+         "id": "1.5C",
+         "actionText": "[Sensory Override] Hydro-Therapy. Turn on the sink faucet. Let the freezing tap water run continuously over your wrists, focusing entirely on the sharp, icy sensation.",
+         "impactHint": "🔊 Massive sensory reset | 🌟 Clear brain fog",
+         "consequenceText": "The subway subjected you to a chaotic barrage of uncontrollable sounds, smells, and touches. To stop the resulting neural short-circuit, you need a 'Sensory Override'—a single, intense, but 100% controllable input. Shocking the pulse points on your wrists with freezing water triggers a physical reset. It forces your brain to drop all background processing and focus entirely on the cold. The tangled knot of sensory trauma instantly snaps. You dry your hands; the static is cleared, and the system is back online.",
+         "statsImpact": { "energy": 20, "sensoryOverload": -35, "managerPressure": 0 },
+         "requirements": null,
+         "disabledReason": null
+       }
+     ]
+   },
+ 
+ 
   {
     "id": "beat_2_revisionist_attack",
     "timeLabel": "09:30 AM",
@@ -102,11 +140,57 @@ export const storyBeats = [
       }
     ]
   },
+ 
+ {
+     "id": "beat_3_5_post_lunch_triage",
+     "timeLabel": "01:30 PM",
+     "title": "The Disabled Stall (Emergency Triage)",
+     "narrativeText": "Back at the office, the humiliation from the Thai restaurant is a physical weight crushing your chest. Sammie's mocking voice—'Are we interrupting your private conversation?'—is looping violently in your head. You bypass your desk and lock yourself inside the spacious disabled restroom stall. The UI is glitching red: [WARNING: NEURAL MELTDOWN IMMINENT]. You must initiate a manual system override to survive the rest of the day.",
+     "choices": [
+       {
+         "id": "3.5A",
+         "actionText": "[Spatial Isolation] The Sanctuary. Squeeze yourself into the narrowest gap between the toilet and the cold tiled wall. Wrap your arms tight around your knees and bury your face.",
+         "impactHint": "🌟 Deep Pressure | 🔋 Regain physical boundaries",
+         "consequenceText": "By physically compressing yourself into a tiny, enclosed corner, you trigger 'Proprioceptive Grounding'. The harsh, unpredictable world is shut out. Your back is against the wall—nothing can sneak up on you here. The intense physical pressure on your joints tells your spiraling brain exactly where your body ends and the hostile environment begins. You are safe in this 2-square-foot universe.",
+         "statsImpact": { "energy": 20, "sensoryOverload": -25, "managerPressure": 0 },
+         "requirements": null,
+         "disabledReason": null
+       },
+       {
+         "id": "3.5B",
+         "actionText": "[Auditory Stimming] The Paloma Loop. Put on your noise-canceling headphones. Play Paris Paloma's 'Labour', but ONLY loop the exact 24 seconds from 0:56 to 1:20. Over and over again.",
+         "impactHint": "🔊 Auditory Override | 🧠 Systematize sensory input",
+         "consequenceText": "0:56 to 1:20. The rhythmic, marching chant fills your skull. For a neurotypical person, looping a 24-second clip 30 times is maddening. But for your ASD brain, this is a lifeline. The restaurant was full of unpredictable, malicious noise. This song snippet is 100% mathematically predictable. You know exactly when every drumbeat and breath will hit. This absolute certainty acts as a concrete wall, violently drowning out Sammie's unpredictable echoes. Control is restored.",
+         "statsImpact": { "energy": 15, "sensoryOverload": -35, "managerPressure": 0 },
+         "requirements": null,
+         "disabledReason": null
+       },
+       {
+         "id": "3.5C",
+         "actionText": "[Cognitive Anchoring] The Survival Spreadsheet. Open a blank note on your phone. Start coldly calculating how many months of rent you can afford if you are fired today, and list every item you can sell secondhand.",
+         "impactHint": "🌟 Logic Anchor | 💔 Accept the worst-case scenario",
+         "consequenceText": "You don't cry. Instead, your brain enters a state of hyper-systemization. Checking account: $4,320. Used monitor: $100. Desk chair: $50. By translating the terrifying, abstract threat of losing your visa into cold, hard numbers, you regain executive function. It is a bleak, heartbreaking mathematical defense mechanism, but as long as the numbers add up, you haven't completely lost control of your existence.",
+         "statsImpact": { "energy": 10, "sensoryOverload": -15, "managerPressure": -10 },
+         "requirements": null,
+         "disabledReason": null
+       }
+     ]
+   },
+ 
+ 
+ 
+ 
+ 
   {
     "id": "beat_4_hr_ambush",
     "timeLabel": "02:30 PM",
     "title": "The HR Ambush",
     "narrativeText": "You previously submitted a report questioning the unfairness of the PIP metrics. As retaliation, Sammie suddenly ambushes your 1:1 meeting, bringing an HR rep with her, claiming she 'doesn't feel comfortable talking to you alone.' She finally bares her fangs, twisting your morning struggles and your 9:30 AM logic defense into weapons. HR sits silently, typing. Sammie slams a printout of your backend login records onto the desk: 'Lynn, your Teams green dot didn't turn on until 8:01 AM today. This is considered late.'",
+    "popupMessages": [
+    { "id": "Conrad", "header": "Conrad", "body": "Lynn, just chill and do small talks!" },
+    { "id": "Conrad", "header": "Conrad", "body": "Tell her about your Florida plan." },
+    { "id": "Conrad", "header": "Conrad", "body": "Remember to smile! :) You got this. " }
+  ],
     "conditionalNarrative": {
       "if_1A": "'David said you ran in sweating and panicking this morning.' You know David likely meant no harm—it was just casual gossip—but in Sammie's mouth, it instantly becomes a bullet: 'That kind of state severely disrupts the professionalism of the office. Do you even respect this job?'",
       "if_1B": "When you frantically try to play the recording of the subway noise to prove the delay, Sammie cuts you off with pure disgust: 'You're actually trying to use an unverifiable, chaotic recording to make excuses? This behavior of secretly recording things is highly unprofessional. Are you secretly recording me too? Why are you so hostile towards the company?'",
@@ -177,6 +261,44 @@ export const storyBeats = [
       }
     ]
   },
+ 
+ {
+     "id": "beat_5_5_the_intrusion",
+     "timeLabel": "04:30 PM",
+     "title": "The Broken Sanctuary (System Intrusion)",
+     "narrativeText": "The 5:00 PM presentation deadline is a tightening noose. Your executive function is completely paralyzed by the sheer impossibility of the task. The office air feels thin, and your vision is tunneling. Desperate, you flee to the disabled stall one last time. You just need three minutes. Three minutes of unmasking to hack your nervous system and squeeze out the last drop of cognitive juice required to survive the meeting. You lock the door. The UI flickers: [INITIATING EMERGENCY REGULATION]...",
+     "choices": [
+       {
+         "id": "5.5A",
+         "actionText": "[Auditory Stimming] Put your headphones on. Try to play that 24-second loop of 'Labour' to drown out the deafening sound of your own panic.",
+         "impactHint": "🌟 Seek auditory isolation",
+         "consequenceText": "Before the first drumbeat can even play... [CRITICAL OVERRIDE]. Your phone violently vibrates in your hand. A glaring notification slices through the dark UI.\n\n> FROM: Sammie\n> 'Lynn, I noticed you are away from your desk again. We are on a tight deadline for the PPT. I need you to be fully present.'\n\nThe sanctuary is shattered. She is monitoring your Teams status minute by minute. The realization that you don't even have the fundamental human right to breathe in private crushes your windpipe. The music is silenced. You are dragged back to the execution block.",
+         "statsImpact": { "energy": -25, "sensoryOverload": 40, "managerPressure": 30 },
+         "requirements": null,
+         "disabledReason": null
+       },
+       {
+         "id": "5.5B",
+         "actionText": "[Deep Pressure / Pain Redirection] Sink your teeth into the side of your hand. Use sharp, intense physical pain to ground your spiraling executive dysfunction.",
+         "impactHint": "🌟 Re-anchor physical reality",
+         "consequenceText": "You bite down hard, hoping the pain will clear the brain fog. But instantly... [CRITICAL OVERRIDE]. Your phone buzzes violently against your leg. A green notification illuminates the dark stall.\n\n> FROM: Sammie\n> 'Lynn, I noticed you are away from your desk again. We are on a tight deadline for the PPT. I need you to be fully present.'\n\nYour teeth release your skin. It doesn't matter how much physical pain you inflict on yourself; it means nothing to the machine. You are a tracked asset. The illusion of safety dissolves into pure terror.",
+         "statsImpact": { "energy": -25, "sensoryOverload": 40, "managerPressure": 30 },
+         "requirements": null,
+         "disabledReason": null
+       },
+       {
+         "id": "5.5C",
+         "actionText": "[Spatial Isolation] Press your forehead against the cold tile wall. Close your eyes and try to shrink your universe down to just this one freezing point of contact.",
+         "impactHint": "🌟 Re-establish physical boundaries",
+         "consequenceText": "The cold tile offers exactly one second of relief before... [CRITICAL OVERRIDE]. The harsh, artificial light of your phone screen forces your eyes open.\n\n> FROM: Sammie\n> 'Lynn, I noticed you are away from your desk again. We are on a tight deadline for the PPT. I need you to be fully present.'\n\nThere is no wall thick enough to block her out. The system has eyes everywhere. The panopticon is absolute. Stripped of your final coping mechanism, your nervous system is pushed into an irreversible freefall.",
+         "statsImpact": { "energy": -25, "sensoryOverload": 40, "managerPressure": 30 },
+         "requirements": null,
+         "disabledReason": null
+       }
+     ]
+   },
+ 
+ 
   {
     "id": "beat_6_cold_world",
     "timeLabel": "06:30 PM",
