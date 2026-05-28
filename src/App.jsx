@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { storyBeats } from './data/storyBeats.js';
 import { diagnosticReport } from './data/diagnosticReport.js';
 import { introTexts as INTRO_TEXTS, introLabels as INTRO_LABELS } from './data/intro.js';
@@ -98,16 +98,25 @@ function StartScreen({ onStart, locale, canQuickSkip }) {
   /** 0..8: current segment. 7 = typewriter stops; 8 = shown by popup-phase timer. */
   const [segmentIndex, setSegmentIndex] = useState(0);
   /** How many chars visible in current segment. */
-  const [charIndex, setCharIndex] = useState(1);
+  const [charIndex, setCharIndex] = useState(0);
   /** Set true when final-line timer fires; shows segment 8. */
   const [showFinalLine, setShowFinalLine] = useState(false);
   const [visibleOrder, setVisibleOrder] = useState(() => []);
   const poppedIdsRef = useRef(new Set());
   const finalLineTimerRef = useRef(null);
 
-  const introTexts = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => getIntroText(i, locale) ?? INTRO_TEXTS[i]);
-  const introLabels = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => getIntroLabel(i, locale) ?? INTRO_LABELS[i]);
-  const lastTypewriterSegment = Math.min(7, introTexts.length - 1);
+  const introTexts = useMemo(
+    () => [0, 1, 2, 3, 4, 5, 6, 7].map((i) => getIntroText(i, locale) ?? INTRO_TEXTS[i] ?? ''),
+    [locale]
+  );
+  const introLabels = useMemo(
+    () => [0, 1, 2, 3, 4, 5, 6, 7].map((i) => getIntroLabel(i, locale) ?? INTRO_LABELS[i] ?? null),
+    [locale]
+  );
+  const MISSION_SEGMENT_INDEX = 6;
+  const FINAL_SEGMENT_INDEX = 7;
+  const lastTypewriterSegment = Math.min(MISSION_SEGMENT_INDEX, introTexts.length - 1);
+  const hasFinalLineSegment = FINAL_SEGMENT_INDEX < introTexts.length;
 
   const handleSkipIntro = useCallback(() => {
     if (!canQuickSkip) return;
@@ -124,19 +133,22 @@ function StartScreen({ onStart, locale, canQuickSkip }) {
     setShowFinalLine(true);
   }, [canQuickSkip, introTexts, lastTypewriterSegment]);
 
-  // Typewriter: one character every TYPEWRITER_MS_PER_CHAR; advance segment when current text done; stop at end of segment 7
+  // Typewriter: one character every TYPEWRITER_MS_PER_CHAR; stop at mission segment, then final line is timer-driven.
   useEffect(() => {
-    if (!hasEnteredIntro || segmentIndex >= 8) return;
-    const text = introTexts[segmentIndex];
+    if (!hasEnteredIntro || segmentIndex > lastTypewriterSegment) return;
+    const text = introTexts[segmentIndex] ?? '';
+    if (!text) return;
+
     if (charIndex >= text.length) {
-      if (segmentIndex >= 7) return;
+      if (segmentIndex >= lastTypewriterSegment) return;
       setSegmentIndex((s) => s + 1);
       setCharIndex(0);
       return;
     }
+
     const tm = setTimeout(() => setCharIndex((c) => c + 1), TYPEWRITER_MS_PER_CHAR);
     return () => clearTimeout(tm);
-  }, [hasEnteredIntro, segmentIndex, charIndex, introTexts]);
+  }, [hasEnteredIntro, segmentIndex, charIndex, introTexts, lastTypewriterSegment]);
 
   // 根据当前已打出的全文检查关键词，按顺序触发弹窗（仅英文）
   const getFullVisibleIntroText = () => {
@@ -198,10 +210,10 @@ function StartScreen({ onStart, locale, canQuickSkip }) {
     if (segIdx < segmentIndex) return text;
     return text.slice(0, charIndex);
   };
-  const showSegment8 = showFinalLine;
+  const showSegment8 = showFinalLine && hasFinalLineSegment;
 
   // 第二屏：打字机逐字打出，NEURAL_CAPACITY 后不规则弹窗，最后一句在最后一条弹窗之后
-  const isTyping = (idx) => segmentIndex === idx && charIndex < introTexts[idx].length;
+  const isTyping = (idx) => segmentIndex === idx && charIndex < (introTexts[idx]?.length ?? 0);
   const cursor = <span className="typewriter-cursor">|</span>;
   const renderSegment = (idx, asBlock = false, className = '') => {
     const txt = visibleText(idx);
@@ -232,21 +244,17 @@ function StartScreen({ onStart, locale, canQuickSkip }) {
       </div>
 
       <div className="report-body">
-        {[2, 3, 4].map((idx) => {
+        {[2, 3, 4, 5].map((idx) => {
           if (segmentIndex < idx) return null;
           if (segmentIndex > idx) return <div key={idx} className="data-block"><span className="block-label">{introLabels[idx]}</span><p>{introTexts[idx]}</p></div>;
           return <React.Fragment key={idx}>{renderSegment(idx, true)}</React.Fragment>;
         })}
-        {segmentIndex > 5 && <p className="report-standalone">{introTexts[5]}</p>}
-        {segmentIndex === 5 && renderSegment(5, true, 'report-standalone')}
-        {segmentIndex > 6 && <p className="report-standalone">{introTexts[6]}</p>}
-        {segmentIndex === 6 && renderSegment(6, true, 'report-standalone')}
       </div>
 
       <div className="report-footer">
-        {segmentIndex > 7 && <p className="mission-objective">{introTexts[7]}</p>}
-        {segmentIndex === 7 && <p className="mission-objective">{visibleText(7)}{isTyping(7) && cursor}</p>}
-        {showSegment8 && <p className="mission-objective">{introTexts[8]}</p>}
+        {segmentIndex > MISSION_SEGMENT_INDEX && <p className="mission-objective">{introTexts[MISSION_SEGMENT_INDEX]}</p>}
+        {segmentIndex === MISSION_SEGMENT_INDEX && <p className="mission-objective">{visibleText(MISSION_SEGMENT_INDEX)}{isTyping(MISSION_SEGMENT_INDEX) && cursor}</p>}
+        {showSegment8 && <p className="mission-objective">{introTexts[FINAL_SEGMENT_INDEX]}</p>}
         {canQuickSkip && segmentIndex < lastTypewriterSegment && (
           <p
             className="mission-objective"
